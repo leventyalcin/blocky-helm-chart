@@ -1,0 +1,189 @@
+name: Release Chart
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Chart.yaml'
+      - 'values.yaml'
+      - 'templates/**'
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  lint:
+    name: Lint Chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Lint chart
+        run: helm lint .
+
+  release:
+    name: Release to GitHub Pages
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Get chart version
+        id: chart_version
+        run: |
+          VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Chart version: $VERSION"
+
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+        continue-on-error: true
+
+      - name: Check if version already exists
+        id: check_version
+        run: |
+          if [ -f "gh-pages/blocky-${{ steps.chart_version.outputs.version }}.tgz" ]; then
+            echo "Version ${{ steps.chart_version.outputs.version }} already exists, skipping release"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Version ${{ steps.chart_version.outputs.version }} is new, proceeding with release"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Package chart
+        if: steps.check_version.outputs.exists == 'false'
+        run: |
+          mkdir -p .helm-releases
+          helm package . -d .helm-releases
+
+      - name: Initialize gh-pages if not exists
+        if: steps.check_version.outputs.exists == 'false'
+        run: |
+          if [ ! -d "gh-pages" ]; then
+            mkdir gh-pages
+            cd gh-pages
+            git init
+            git checkout -b gh-pages
+          fi
+
+      - name: Update repository index
+        if: steps.check_version.outputs.exists == 'false'
+        run: |
+          if [ -f gh-pages/index.yaml ]; then
+            helm repo index .helm-releases --url https://leventyalcin.github.io/blocky-helm-chart --merge gh-pages/index.yaml
+          else
+            helm repo index .helm-releases --url https://leventyalcin.github.io/blocky-helm-chart
+          fi
+
+      - name: Copy files to gh-pages
+        if: steps.check_version.outputs.exists == 'false'
+        run: |
+          cp .helm-releases/*.tgz gh-pages/
+          cp .helm-releases/index.yaml gh-pages/
+
+      - name: Create index.html
+        if: steps.check_version.outputs.exists == 'false'
+        run: |
+          cat > gh-pages/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Blocky Helm Chart</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+              h1 { color: #333; }
+              h2 { color: #555; margin-top: 30px; }
+              pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+              code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
+              a { color: #0366d6; }
+              .version { font-family: monospace; }
+            </style>
+          </head>
+          <body>
+            <h1>Blocky Helm Chart</h1>
+            <p>A Helm chart for <a href="https://github.com/0xERR0R/blocky">Blocky DNS Server</a> - Fast and lightweight DNS proxy with ad-blocking.</p>
+
+            <h2>Installation</h2>
+            <pre><code># Add the Helm repository
+          helm repo add leventyalcin https://leventyalcin.github.io/blocky-helm-chart
+          helm repo update
+
+          # Install the latest version
+          helm install blocky leventyalcin/blocky
+
+          # Install a specific version
+          helm install blocky leventyalcin/blocky --version 1.0.0
+
+          # List available versions
+          helm search repo leventyalcin/blocky --versions</code></pre>
+
+            <h2>Links</h2>
+            <ul>
+              <li><a href="https://github.com/leventyalcin/blocky-helm-chart">GitHub Repository</a></li>
+              <li><a href="https://github.com/leventyalcin/blocky-helm-chart/releases">Releases / Changelog</a></li>
+              <li><a href="https://0xerr0r.github.io/blocky/">Blocky Documentation</a></li>
+              <li><a href="index.yaml">Helm Repository Index</a></li>
+            </ul>
+          </body>
+          </html>
+          EOF
+
+      - name: Push to gh-pages
+        if: steps.check_version.outputs.exists == 'false'
+        run: |
+          cd gh-pages
+          git add .
+          git diff --staged --quiet || git commit -m "Release chart version ${{ steps.chart_version.outputs.version }}"
+          git push origin gh-pages --force
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        if: steps.check_version.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.chart_version.outputs.version }}
+          name: v${{ steps.chart_version.outputs.version }}
+          body: |
+            ## Blocky Helm Chart v${{ steps.chart_version.outputs.version }}
+
+            ### Installation
+            ```bash
+            helm repo add leventyalcin https://leventyalcin.github.io/blocky-helm-chart
+            helm repo update
+            helm install blocky leventyalcin/blocky --version ${{ steps.chart_version.outputs.version }}
+            ```
+
+            ### Files
+            - [blocky-${{ steps.chart_version.outputs.version }}.tgz](https://leventyalcin.github.io/blocky-helm-chart/blocky-${{ steps.chart_version.outputs.version }}.tgz)
+          files: |
+            .helm-releases/blocky-${{ steps.chart_version.outputs.version }}.tgz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

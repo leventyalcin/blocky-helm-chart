@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "blocky.fullname" . }}-config
+  labels:
+    {{- include "blocky.labels" . | nindent 4 }}
+data:
+  config.yml: |
+    upstreams:
+      groups:
+        {{- range $group, $servers := .Values.config.upstreams.groups }}
+        {{ $group }}:
+          {{- range $servers }}
+          - {{ . }}
+          {{- end }}
+        {{- end }}
+      {{- if .Values.config.upstreams.strategy }}
+      strategy: {{ .Values.config.upstreams.strategy }}
+      {{- end }}
+      {{- if .Values.config.upstreams.timeout }}
+      timeout: {{ .Values.config.upstreams.timeout }}
+      {{- end }}
+
+    ports:
+      dns: {{ .Values.config.ports.dns }}
+      http: {{ .Values.config.ports.http }}
+
+    {{- if .Values.config.blocking }}
+    blocking:
+      {{- if .Values.config.blocking.denylists }}
+      denylists:
+        {{- range $group, $lists := .Values.config.blocking.denylists }}
+        {{ $group }}:
+          {{- range $lists }}
+          - {{ . }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.config.blocking.allowlists }}
+      allowlists:
+        {{- range $group, $lists := .Values.config.blocking.allowlists }}
+        {{ $group }}:
+          {{- range $lists }}
+          - {{ . }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.config.blocking.clientGroupsBlock }}
+      clientGroupsBlock:
+        {{- range $client, $groups := .Values.config.blocking.clientGroupsBlock }}
+        {{ $client }}:
+          {{- range $groups }}
+          - {{ . }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.config.blocking.blockType }}
+      blockType: {{ .Values.config.blocking.blockType }}
+      {{- end }}
+      {{- if .Values.config.blocking.blockTTL }}
+      blockTTL: {{ .Values.config.blocking.blockTTL }}
+      {{- end }}
+    {{- end }}
+
+    {{- if .Values.config.caching }}
+    caching:
+      {{- if .Values.config.caching.minTime }}
+      minTime: {{ .Values.config.caching.minTime }}
+      {{- end }}
+      {{- if .Values.config.caching.maxTime }}
+      maxTime: {{ .Values.config.caching.maxTime }}
+      {{- end }}
+      {{- if .Values.config.caching.prefetching }}
+      prefetching: {{ .Values.config.caching.prefetching }}
+      {{- end }}
+    {{- end }}
+
+    {{- if .Values.config.log }}
+    log:
+      {{- if .Values.config.log.level }}
+      level: {{ .Values.config.log.level }}
+      {{- end }}
+      {{- if .Values.config.log.format }}
+      format: {{ .Values.config.log.format }}
+      {{- end }}
+      {{- if .Values.config.log.privacy }}
+      privacy: {{ .Values.config.log.privacy }}
+      {{- end }}
+      {{- if .Values.config.log.timestamp }}
+      timestamp: {{ .Values.config.log.timestamp }}
+      {{- end }}
+    {{- end }}
+
+    {{- if .Values.config.prometheus }}
+    prometheus:
+      enable: {{ .Values.config.prometheus.enable }}
+      path: {{ .Values.config.prometheus.path }}
+    {{- end }}
+
+    {{- if and .Values.config.customDNS .Values.config.customDNS.mapping }}
+    {{- if gt (len .Values.config.customDNS.mapping) 0 }}
+    customDNS:
+      customTTL: {{ .Values.config.customDNS.customTTL | default "1h" }}
+      mapping:
+        {{- range $domain, $ip := .Values.config.customDNS.mapping }}
+        {{ $domain }}: {{ $ip }}
+        {{- end }}
+    {{- end }}
+    {{- end }}
+
+    {{- if and .Values.config.conditional .Values.config.conditional.mapping }}
+    {{- if gt (len .Values.config.conditional.mapping) 0 }}
+    conditional:
+      fallbackUpstream: {{ .Values.config.conditional.fallbackUpstream | default true }}
+      {{- if gt (len .Values.config.conditional.rewrite) 0 }}
+      rewrite:
+      {{- range $domain, $rewrite_domain := .Values.config.conditional.mapping }}
+        {{ $domain }}: {{ $rewrite_domain }}
+      {{- end }}
+      {{- end }}
+      mapping:
+        {{- range $domain, $server := .Values.config.conditional.mapping }}
+        {{ $domain }}: {{ $server }}
+        {{- end }}
+    {{- end }}
+    {{- end }}

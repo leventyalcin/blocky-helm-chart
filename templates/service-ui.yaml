@@ -1,0 +1,18 @@
+{{- if .Values.blockyUI.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "blocky.fullname" . }}-ui
+  labels:
+    {{- include "blocky.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ui
+spec:
+  type: ClusterIP
+  ports:
+    - name: ui
+      port: {{ .Values.blockyUI.port }}
+      targetPort: ui
+      protocol: TCP
+  selector:
+    {{- include "blocky.selectorLabels" . | nindent 4 }}
+{{- end }}

@@ -1,0 +1,38 @@
+{{- if and .Values.blockyUI.enabled .Values.blockyUI.ingress.enabled -}}
+{{- $fullName := include "blocky.fullname" . -}}
+{{- $uiPort := .Values.blockyUI.port -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}-ui
+  labels:
+    {{- include "blocky.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ui
+  {{- with .Values.blockyUI.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.blockyUI.ingress.className }}
+  ingressClassName: {{ .Values.blockyUI.ingress.className }}
+  {{- end }}
+  {{- if .Values.blockyUI.ingress.tls }}
+  tls:
+    - hosts:
+        - {{ .Values.blockyUI.ingress.hostname | quote }}
+      {{- if .Values.blockyUI.ingress.tls.secretName }}
+      secretName: {{ .Values.blockyUI.ingress.tls.secretName }}
+      {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.blockyUI.ingress.hostname | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullName }}-ui
+                port:
+                  number: {{ $uiPort }}
+{{- end }}
