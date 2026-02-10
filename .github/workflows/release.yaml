@@ -92,11 +92,13 @@ jobs:
       - name: Initialize gh-pages if not exists
         if: steps.check_version.outputs.exists == 'false'
         run: |
-          if [ ! -d "gh-pages" ]; then
+          if [ ! -d "gh-pages/.git" ]; then
+            rm -rf gh-pages
             mkdir gh-pages
             cd gh-pages
             git init
             git checkout -b gh-pages
+            git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
           fi
 
       - name: Update repository index
