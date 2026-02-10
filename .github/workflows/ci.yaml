@@ -8,7 +8,7 @@ on:
       - 'Chart.yaml'
       - 'values.yaml'
       - 'templates/**'
-      - '.github/workflows/ci.yaml'
+      - '.github/workflows/*.yaml'
 
 jobs:
   lint:
@@ -43,14 +43,13 @@ jobs:
       - name: Template with defaults
         run: helm template test-release . --debug
 
-      - name: Template with ingress enabled
+      - name: Template with blockyUI enabled
         run: |
           helm template test-release . \
-            --set ingress.enabled=true \
-            --set ingress.className=nginx \
-            --set 'ingress.hosts[0].host=blocky.example.com' \
-            --set 'ingress.hosts[0].paths[0].path=/' \
-            --set 'ingress.hosts[0].paths[0].pathType=Prefix'
+            --set blockyUI.enabled=true \
+            --set blockyUI.ingress.enabled=true \
+            --set blockyUI.ingress.className=nginx \
+            --set blockyUI.ingress.hostname=blocky.example.com
 
       - name: Template with custom values
         run: |
