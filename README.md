@@ -1,0 +1,175 @@
+# Blocky Helm Chart
+
+[![Lint and Test Chart](https://github.com/leventyalcin/blocky-helm-chart/actions/workflows/ci.yaml/badge.svg)](https://github.com/leventyalcin/blocky-helm-chart/actions/workflows/ci.yaml)
+[![Release Chart](https://github.com/leventyalcin/blocky-helm-chart/actions/workflows/release.yaml/badge.svg)](https://github.com/leventyalcin/blocky-helm-chart/actions/workflows/release.yaml)
+
+A Helm chart for [Blocky DNS Server](https://github.com/0xERR0R/blocky) - Fast and lightweight DNS proxy with ad-blocking.
+
+## Quick Start
+
+```bash
+helm repo add leventyalcin https://leventyalcin.github.io/blocky-helm-chart
+helm repo update
+helm install blocky leventyalcin/blocky
+```
+
+## Versioning
+
+All chart versions are preserved and can be installed at any time.
+
+```bash
+# List all available versions
+helm search repo leventyalcin/blocky --versions
+
+# Install a specific version
+helm install blocky leventyalcin/blocky --version 1.0.0
+
+# Upgrade to a specific version
+helm upgrade blocky leventyalcin/blocky --version 1.0.5
+```
+
+See the [Releases](https://github.com/leventyalcin/blocky-helm-chart/releases) page for changelog.
+
+## Installation
+
+### From Helm Repository
+
+```bash
+# Add the Helm repository
+helm repo add leventyalcin https://leventyalcin.github.io/blocky-helm-chart
+helm repo update
+
+# Install with default values
+helm install blocky leventyalcin/blocky
+
+# Install in a specific namespace
+helm install blocky leventyalcin/blocky -n dns --create-namespace
+
+# Install with custom values file
+helm install blocky leventyalcin/blocky -f my-values.yaml
+```
+
+### From Source
+
+```bash
+git clone https://github.com/leventyalcin/blocky-helm-chart.git
+cd blocky-helm-chart
+helm install blocky .
+```
+
+## Configuration
+
+See [values.yaml](values.yaml) for the full list of configurable parameters.
+
+### Key Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `replicaCount` | Number of replicas | `1` |
+| `image.repository` | Blocky container image | `ghcr.io/0xerr0r/blocky` |
+| `image.tag` | Image tag | `latest` |
+| `dnsService.type` | DNS service type | `LoadBalancer` |
+| `dnsService.port` | DNS port | `53` |
+| `webService.type` | Blocky API service type | `ClusterIP` |
+| `webService.port` | Blocky API port | `4000` |
+| `blockyUI.enabled` | Enable Blocky UI sidecar | `false` |
+| `blockyUI.ingress.enabled` | Enable ingress for Blocky UI | `false` |
+| `serviceMonitor.enabled` | Enable ServiceMonitor | `true` |
+
+### Examples
+
+#### Basic Installation with Custom Upstream DNS
+
+```yaml
+# values.yaml
+config:
+  upstreams:
+    groups:
+      default:
+        - https://dns.cloudflare.com/dns-query
+        - https://dns.google/dns-query
+```
+
+#### Enable Blocky UI with Ingress
+
+[Blocky UI](https://github.com/gabeduartem/blocky-ui) provides a web interface for managing Blocky. It runs as a sidecar container in the same pod.
+
+```yaml
+# values.yaml
+blockyUI:
+  enabled: true
+  image:
+    repository: ghcr.io/gabeduartem/blocky-ui
+    tag: "1.5.0"
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hostname: blocky.example.com
+    tls:
+      secretName: blocky-tls
+```
+
+#### Node Affinity and Tolerations
+
+```yaml
+# values.yaml
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: node-role.kubernetes.io/dns
+              operator: Exists
+
+tolerations:
+  - key: "dedicated"
+    operator: "Equal"
+    value: "dns"
+    effect: "NoSchedule"
+```
+
+#### Custom DNS Entries
+
+```yaml
+# values.yaml
+config:
+  customDNS:
+    customTTL: 1h
+    mapping:
+      printer.home: 192.168.1.100
+      nas.home: 192.168.1.50
+```
+
+## Blocky UI
+
+This chart includes optional support for [Blocky UI](https://github.com/gabeduartem/blocky-ui), a web interface for Blocky.
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `blockyUI.enabled` | Enable Blocky UI sidecar | `false` |
+| `blockyUI.image.repository` | Blocky UI image | `ghcr.io/gabeduartem/blocky-ui` |
+| `blockyUI.image.tag` | Blocky UI image tag | `v1.1.0` |
+| `blockyUI.port` | Blocky UI port | `3000` |
+| `blockyUI.ingress.enabled` | Enable ingress | `false` |
+| `blockyUI.ingress.className` | Ingress class | `""` |
+| `blockyUI.ingress.hostname` | Ingress hostname | `blocky-ui.local` |
+| `blockyUI.ingress.tls.secretName` | TLS secret name | `""` |
+
+## Monitoring
+
+The chart creates a ServiceMonitor with `release: prometheus` label by default, compatible with [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack).
+
+Import the Grafana dashboard: [Dashboard ID 13768](https://grafana.com/grafana/dashboards/13768)
+
+## Resources
+
+- [Blocky Documentation](https://0xerr0r.github.io/blocky/)
+- [Blocky GitHub](https://github.com/0xERR0R/blocky)
+- [Blocky UI GitHub](https://github.com/gabeduartem/blocky-ui)
+- [Configuration Reference](https://0xerr0r.github.io/blocky/latest/configuration/)
+
+## License
+
+Apache 2.0

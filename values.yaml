@@ -1,0 +1,213 @@
+# Blocky DNS Server Helm Chart Values
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/0xerr0r/blocky
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to appVersion
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Blocky configuration
+# Reference: https://0xerr0r.github.io/blocky/latest/configuration/
+config:
+  # Upstream DNS servers (required)
+  upstreams:
+    groups:
+      default:
+        - https://dns.cloudflare.com/dns-query
+        - https://dns.google/dns-query
+    strategy: parallel_best
+    timeout: 2s
+
+  # Ports configuration
+  ports:
+    dns: 53
+    http: 4000
+
+  # Blocking configuration
+  blocking:
+    denylists:
+      ads:
+        - https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+    clientGroupsBlock:
+      default:
+        - ads
+    blockType: zeroIp
+    blockTTL: 6h
+
+  # Caching configuration
+  caching:
+    minTime: 5m
+    maxTime: 30m
+    prefetching: true
+
+  # Logging configuration
+  log:
+    level: info
+    format: text
+    privacy: false
+    timestamp: true
+
+  # Prometheus metrics
+  prometheus:
+    enable: true
+    path: /metrics
+
+  # Optional: Custom DNS entries
+  customDNS:
+    customTTL: 1h
+    mapping: {}
+    # Example:
+    # printer.lan: 192.168.1.100
+
+  # Optional: Conditional DNS
+  conditional:
+    fallbackUpstream: true
+    rewrite: {}
+    mapping: {}
+    # Example:
+    # internal.company.com: 10.0.0.1
+
+# DNS Service configuration
+dnsService:
+  enabled: true
+  type: LoadBalancer
+  port: 53
+  annotations: {}
+  # loadBalancerIP: ""
+  # externalTrafficPolicy: Local
+
+# Web UI / HTTP Service configuration (Blocky API)
+webService:
+  enabled: true
+  type: ClusterIP
+  port: 4000
+  annotations: {}
+
+# Blocky UI - Web interface for Blocky
+# https://github.com/gabeduartem/blocky-ui
+blockyUI:
+  enabled: false
+  image:
+    repository: ghcr.io/gabeduartem/blocky-ui
+    pullPolicy: IfNotPresent
+    tag: "1.5.0"
+  port: 3000
+  # Environment variables for blocky-ui
+  env:
+    # BLOCKY_API_URL is automatically set to http://localhost:4000
+    # INSTANCE_NAME: "Blocky DNS"
+    # DEMO_MODE: "false"
+  # Ingress for Blocky UI
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+      # nginx.ingress.kubernetes.io/backend-protocol: HTTP
+      # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      # cert-manager.io/cluster-issuer: letsencrypt-prod
+    hostname: blocky-ui.local
+    tls: {}
+      # secretName: blocky-ui-tls
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: true
+  namespace: ""  # Defaults to release namespace
+  labels:
+    release: prometheus  # Required for prometheus-operator to discover
+  annotations: {}
+  interval: 30s
+  scrapeTimeout: 10s
+  path: /metrics
+  port: http
+  honorLabels: false
+  metricRelabelings: []
+  relabelings: []
+
+# Pod resources (applied to both blocky and blocky-ui containers)
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# Node scheduling
+nodeSelector: {}
+
+tolerations: []
+# - key: "dedicated"
+#   operator: "Equal"
+#   value: "dns"
+#   effect: "NoSchedule"
+
+affinity: {}
+# nodeAffinity:
+#   requiredDuringSchedulingIgnoredDuringExecution:
+#     nodeSelectorTerms:
+#       - matchExpressions:
+#           - key: kubernetes.io/hostname
+#             operator: In
+#             values:
+#               - node1
+#               - node2
+
+# Pod security context
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   add:
+  #     - NET_BIND_SERVICE
+  #   drop:
+  #     - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Liveness and readiness probes
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Extra environment variables
+extraEnv: []
+# - name: TZ
+#   value: "UTC"
+
+# Extra volume mounts
+extraVolumeMounts: []
+
+# Extra volumes
+extraVolumes: []

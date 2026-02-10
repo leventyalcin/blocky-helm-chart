@@ -1,0 +1,32 @@
+{{- if .Values.dnsService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "blocky.fullname" . }}-dns
+  labels:
+    {{- include "blocky.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dns
+  {{- with .Values.dnsService.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.dnsService.type }}
+  {{- if and (eq .Values.dnsService.type "LoadBalancer") .Values.dnsService.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.dnsService.loadBalancerIP }}
+  {{- end }}
+  {{- if .Values.dnsService.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ .Values.dnsService.externalTrafficPolicy }}
+  {{- end }}
+  ports:
+    - name: dns-tcp
+      port: {{ .Values.dnsService.port }}
+      targetPort: dns-tcp
+      protocol: TCP
+    - name: dns-udp
+      port: {{ .Values.dnsService.port }}
+      targetPort: dns-udp
+      protocol: UDP
+  selector:
+    {{- include "blocky.selectorLabels" . | nindent 4 }}
+{{- end }}

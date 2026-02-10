@@ -1,0 +1,62 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named: {{ .Release.Name }}
+
+== DNS Service ==
+{{- if .Values.dnsService.enabled }}
+DNS Service Type: {{ .Values.dnsService.type }}
+{{- if eq .Values.dnsService.type "LoadBalancer" }}
+
+To get the DNS server address, run:
+  kubectl get svc {{ include "blocky.fullname" . }}-dns -n {{ .Release.Namespace }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+
+Configure your devices to use this IP as their DNS server on port {{ .Values.dnsService.port }}.
+{{- else if eq .Values.dnsService.type "ClusterIP" }}
+
+DNS is available within the cluster at:
+  {{ include "blocky.fullname" . }}-dns.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.dnsService.port }}
+{{- end }}
+{{- end }}
+
+== Blocky API ==
+{{- if .Values.webService.enabled }}
+
+To access the Blocky API locally, run:
+  kubectl port-forward svc/{{ include "blocky.fullname" . }}-http {{ .Values.webService.port }}:{{ .Values.webService.port }} -n {{ .Release.Namespace }}
+
+Then open: http://localhost:{{ .Values.webService.port }}
+{{- end }}
+
+== Blocky UI ==
+{{- if .Values.blockyUI.enabled }}
+{{- if .Values.blockyUI.ingress.enabled }}
+
+Blocky UI is available at:
+  http{{ if .Values.blockyUI.ingress.tls }}s{{ end }}://{{ .Values.blockyUI.ingress.hostname }}
+{{- else }}
+
+To access Blocky UI locally, run:
+  kubectl port-forward svc/{{ include "blocky.fullname" . }}-ui {{ .Values.blockyUI.port }}:{{ .Values.blockyUI.port }} -n {{ .Release.Namespace }}
+
+Then open: http://localhost:{{ .Values.blockyUI.port }}
+{{- end }}
+{{- else }}
+
+Blocky UI is disabled. Enable it with:
+  blockyUI:
+    enabled: true
+{{- end }}
+
+== Monitoring ==
+{{- if .Values.serviceMonitor.enabled }}
+
+ServiceMonitor is enabled. Prometheus will automatically discover and scrape metrics.
+Metrics endpoint: /metrics on port {{ .Values.webService.port }}
+
+Grafana Dashboard: https://grafana.com/grafana/dashboards/13768
+{{- end }}
+
+== Documentation ==
+- Configuration: https://0xerr0r.github.io/blocky/latest/configuration/
+- Blocky GitHub: https://github.com/0xERR0R/blocky
+- Blocky UI GitHub: https://github.com/gabeduartem/blocky-ui
