@@ -3,7 +3,7 @@ name: Release Chart
 on:
   push:
     branches:
-      - main
+      - master
     paths:
       - 'Chart.yaml'
       - 'values.yaml'
@@ -96,8 +96,7 @@ jobs:
             rm -rf gh-pages
             mkdir gh-pages
             cd gh-pages
-            git init
-            git checkout -b gh-pages
+            git init -b gh-pages
             git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
           fi
 

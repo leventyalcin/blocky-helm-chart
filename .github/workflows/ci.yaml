@@ -3,7 +3,7 @@ name: Lint and Test Chart
 on:
   pull_request:
     branches:
-      - main
+      - master
     paths:
       - 'Chart.yaml'
       - 'values.yaml'
