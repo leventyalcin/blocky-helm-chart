@@ -163,6 +163,62 @@ The chart creates a ServiceMonitor with `release: prometheus` label by default, 
 
 Import the Grafana dashboard: [Dashboard ID 13768](https://grafana.com/grafana/dashboards/13768)
 
+## Default Lists
+
+* StevenBlack
+  * Unified hosts <https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts>
+* blocklistproject
+  * Abuse: <https://blocklistproject.github.io/Lists/abuse.txt>
+  * Ads: <https://blocklistproject.github.io/Lists/ads.txt>
+  * Crypto: <https://blocklistproject.github.io/Lists/crypto.txt>
+  * Drugs: <https://blocklistproject.github.io/Lists/drugs.txt>
+  * Fraud: <https://blocklistproject.github.io/Lists/fraud.txt>
+  * Gambling: <https://blocklistproject.github.io/Lists/gambling.txt>
+  * Malware: <https://blocklistproject.github.io/Lists/malware.txt>
+  * Phishing: <https://blocklistproject.github.io/Lists/phishing.txt>
+  * Piracy: <https://blocklistproject.github.io/Lists/piracy.txt>
+  * Ransomware: <https://blocklistproject.github.io/Lists/ransomware.txt>
+  * Redirect: <https://blocklistproject.github.io/Lists/redirect.txt>
+  * Scam: <https://blocklistproject.github.io/Lists/scam.txt>
+  * Tracking: <https://blocklistproject.github.io/Lists/tracking.txt>
+  * Smart TV: <https://blocklistproject.github.io/Lists/smart-tv.txt>
+* Firebog
+  * Suspicious Lists
+    * <https://raw.githubusercontent.com/PolishFiltersTeam/KADhosts/master/KADhosts.txt>
+    * <https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts>
+    * <https://v.firebog.net/hosts/static/w3kbl.txt>
+  * Advertising Lists
+    * <https://adaway.org/hosts.txt>
+    * <https://v.firebog.net/hosts/AdguardDNS.txt>
+    * <https://v.firebog.net/hosts/Admiral.txt>
+    * <https://raw.githubusercontent.com/anudeepND/blacklist/master/adservers.txt>
+    * <https://v.firebog.net/hosts/Easylist.txt>
+    * <https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext>
+    * <https://raw.githubusercontent.com/FadeMind/hosts.extras/master/UncheckyAds/hosts>
+    * <https://raw.githubusercontent.com/bigdargon/hostsVN/master/hosts>
+  * Tracking & Telemetry Lists
+    * <https://v.firebog.net/hosts/Easyprivacy.txt>
+    * <https://v.firebog.net/hosts/Prigent-Ads.txt>
+    * <https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.2o7Net/hosts>
+    * <https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/spy.txt>
+    * <https://hostfiles.frogeye.fr/firstparty-trackers-hosts.txt>
+  * Malicious Lists
+    * <https://raw.githubusercontent.com/DandelionSprout/adfilt/master/Alternate%20versions%20Anti-Malware%20List/AntiMalwareHosts.txt>
+    * <https://v.firebog.net/hosts/Prigent-Crypto.txt>
+    * <https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts>
+    * <https://phishing.army/download/phishing_army_blocklist_extended.txt>
+    * <https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-malware.txt>
+    * <https://raw.githubusercontent.com/Spam404/lists/master/main-blacklist.txt>
+    * <https://raw.githubusercontent.com/AssoEchap/stalkerware-indicators/master/generated/hosts>
+    * <https://urlhaus.abuse.ch/downloads/hostfile/>
+    * <https://lists.cyberhost.uk/malware.txt>
+* hagezi
+  * Multi PRO - Extended protection (Recommended): <https://gitlab.com/hagezi/mirror/-/raw/main/dns-blocklists/wildcard/pro.txt>
+* kboghdady
+  * <https://raw.githubusercontent.com/kboghdady/youTube_ads_4_pi-hole/master/youtubelist.txt>
+* osid.nl
+  * Big: <https://big.oisd.nl/domainswild>
+
 ## Resources
 
 - [Blocky Documentation](https://0xerr0r.github.io/blocky/)
