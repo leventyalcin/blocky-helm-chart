@@ -173,12 +173,20 @@ jobs:
         if: steps.check_version.outputs.exists == 'false' && inputs.dry_run != true
         run: |
           cd gh-pages
-          git init
-          git checkout -b gh-pages
-          git add .
-          git commit -m "Release chart version ${{ steps.chart_version.outputs.version }}"
-          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
-          git push -u origin gh-pages --force
+          if [ "${{ steps.check_branch.outputs.exists }}" == "true" ]; then
+            # Branch exists, just commit and push
+            git add .
+            git commit -m "Release chart version ${{ steps.chart_version.outputs.version }}"
+            git push origin gh-pages
+          else
+            # First time: init new repo and push
+            git init
+            git checkout -b gh-pages
+            git add .
+            git commit -m "Release chart version ${{ steps.chart_version.outputs.version }}"
+            git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+            git push -u origin gh-pages --force
+          fi
 
       - name: Dry run summary
         if: steps.check_version.outputs.exists == 'false' && inputs.dry_run == true
