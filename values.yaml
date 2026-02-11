@@ -242,6 +242,17 @@ serviceAccount:
 # Pod annotations
 podAnnotations: {}
 
+# Startup probe - allows slow startup when downloading many blocklists
+# Once startup probe succeeds, liveness/readiness probes take over
+startupProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 33  # (33 * 5s) + 15s = 3 minutes max startup time
+
 # Liveness and readiness probes
 livenessProbe:
   httpGet:

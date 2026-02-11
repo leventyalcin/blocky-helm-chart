@@ -221,10 +221,10 @@ Import the Grafana dashboard: [Dashboard ID 13768](https://grafana.com/grafana/d
 
 ## Resources
 
-- [Blocky Documentation](https://0xerr0r.github.io/blocky/)
-- [Blocky GitHub](https://github.com/0xERR0R/blocky)
-- [Blocky UI GitHub](https://github.com/gabeduartem/blocky-ui)
-- [Configuration Reference](https://0xerr0r.github.io/blocky/latest/configuration/)
+* [Blocky Documentation](https://0xerr0r.github.io/blocky/)
+* [Blocky GitHub](https://github.com/0xERR0R/blocky)
+* [Blocky UI GitHub](https://github.com/gabeduartem/blocky-ui)
+* [Configuration Reference](https://0xerr0r.github.io/blocky/latest/configuration/)
 
 ## License
 
