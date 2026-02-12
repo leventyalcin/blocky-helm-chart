@@ -132,6 +132,123 @@ config:
     # Example:
     # internal.company.com: 10.0.0.1
 
+  # Query logging configuration
+  # Only ONE type can be enabled at a time: mysql, postgresql, console, or none
+  queryLog:
+    # Type of query logging: mysql, postgresql, console, none
+    type: none
+    # Fields to log (applies to all types)
+    fields:
+      - clientIP
+      - clientName
+      - responseReason
+      - responseAnswer
+      - question
+      - duration
+
+    # Flush interval
+    flushInterval: 30s
+    # If > 0, deletes log entries which are older than ... days
+    logRetentionDays: 0
+    # Max attempts to create specific query log writer
+    creationAttempts: 3
+    # Time between the creation attempts
+    creationCooldown: 2s
+
+    # MySQL configuration (only used when type: mysql)
+    mysql:
+      # External database configuration
+      # If hostname is set, no StatefulSet/Service/Secret will be created
+      external:
+        hostname: ""
+        port: 3306
+        # Secret containing the password
+        secretName: ""
+        secretKey: "mysql-password"
+      # Internal database configuration (ignored if external.hostname is set)
+      image:
+        repository: mysql
+        tag: "8.0"
+        pullPolicy: IfNotPresent
+      # Database name
+      database: blocky
+      # Username
+      user: blocky
+      # Existing secret name containing 'mysql-root-password' and 'mysql-password' keys
+      # If not set, a secret will be auto-generated
+      existingSecret: ""
+      # Resources for MySQL container
+      resources: {}
+        # limits:
+        #   cpu: 500m
+        #   memory: 512Mi
+        # requests:
+        #   cpu: 100m
+        #   memory: 256Mi
+      # Persistence configuration
+      persistence:
+        enabled: false
+        storageClass: ""
+        size: 5Gi
+        accessModes:
+          - ReadWriteOnce
+      # Custom MySQL configuration (my.cnf)
+      # Optimized for minimal memory (~256-384MB)
+      config: |
+        [mysqld]
+        innodb_buffer_pool_size = 48M
+        innodb_log_buffer_size = 4M
+        innodb_log_file_size = 24M
+        innodb_flush_log_at_trx_commit = 2
+        innodb_flush_method = O_DIRECT
+        key_buffer_size = 8M
+        max_connections = 25
+        thread_cache_size = 4
+        table_open_cache = 64
+        table_definition_cache = 256
+        tmp_table_size = 8M
+        max_heap_table_size = 8M
+        performance_schema = OFF
+        skip_name_resolve = ON
+
+    # PostgreSQL configuration (only used when type: postgresql)
+    postgresql:
+      # External database configuration
+      # If hostname is set, no StatefulSet/Service/Secret will be created
+      external:
+        hostname: ""
+        port: 5432
+        # Secret containing the password
+        secretName: ""
+        secretKey: "postgresql-password"
+      # Internal database configuration (ignored if external.hostname is set)
+      image:
+        repository: postgres
+        tag: "16-alpine"
+        pullPolicy: IfNotPresent
+      # Database name
+      database: blocky
+      # Username
+      user: blocky
+      # Existing secret name containing 'postgresql-password' key
+      # If not set, a secret will be auto-generated
+      existingSecret: ""
+      # Resources for PostgreSQL container
+      resources: {}
+        # limits:
+        #   cpu: 500m
+        #   memory: 512Mi
+        # requests:
+        #   cpu: 100m
+        #   memory: 256Mi
+      # Persistence configuration
+      persistence:
+        enabled: false
+        storageClass: ""
+        size: 5Gi
+        accessModes:
+          - ReadWriteOnce
+
 # DNS Service configuration
 dnsService:
   enabled: true

@@ -63,18 +63,19 @@ See [values.yaml](values.yaml) for the full list of configurable parameters.
 
 ### Key Parameters
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `replicaCount` | Number of replicas | `1` |
-| `image.repository` | Blocky container image | `ghcr.io/0xerr0r/blocky` |
-| `image.tag` | Image tag | `latest` |
-| `dnsService.type` | DNS service type | `LoadBalancer` |
-| `dnsService.port` | DNS port | `53` |
-| `webService.type` | Blocky API service type | `ClusterIP` |
-| `webService.port` | Blocky API port | `4000` |
-| `blockyUI.enabled` | Enable Blocky UI sidecar | `false` |
-| `blockyUI.ingress.enabled` | Enable ingress for Blocky UI | `false` |
-| `serviceMonitor.enabled` | Enable ServiceMonitor | `true` |
+| Parameter                  | Description                                             | Default                  |
+|----------------------------|---------------------------------------------------------|--------------------------|
+| `replicaCount`             | Number of replicas                                      | `1`                      |
+| `image.repository`         | Blocky container image                                  | `ghcr.io/0xerr0r/blocky` |
+| `image.tag`                | Image tag                                               | `latest`                 |
+| `dnsService.type`          | DNS service type                                        | `LoadBalancer`           |
+| `dnsService.port`          | DNS port                                                | `53`                     |
+| `webService.type`          | Blocky API service type                                 | `ClusterIP`              |
+| `webService.port`          | Blocky API port                                         | `4000`                   |
+| `blockyUI.enabled`         | Enable Blocky UI sidecar                                | `false`                  |
+| `blockyUI.ingress.enabled` | Enable ingress for Blocky UI                            | `false`                  |
+| `config.queryLog.type`     | Query logging: `none`, `mysql`, `postgresql`, `console` | `none`                   |
+| `serviceMonitor.enabled`   | Enable ServiceMonitor                                   | `true`                   |
 
 ### Examples
 
@@ -146,22 +147,118 @@ config:
 
 This chart includes optional support for [Blocky UI](https://github.com/gabeduartem/blocky-ui), a web interface for Blocky.
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `blockyUI.enabled` | Enable Blocky UI sidecar | `false` |
-| `blockyUI.image.repository` | Blocky UI image | `ghcr.io/gabeduartem/blocky-ui` |
-| `blockyUI.image.tag` | Blocky UI image tag | `v1.1.0` |
-| `blockyUI.port` | Blocky UI port | `3000` |
-| `blockyUI.ingress.enabled` | Enable ingress | `false` |
-| `blockyUI.ingress.className` | Ingress class | `""` |
-| `blockyUI.ingress.hostname` | Ingress hostname | `blocky-ui.local` |
-| `blockyUI.ingress.tls.secretName` | TLS secret name | `""` |
+| Parameter                         | Description              | Default                         |
+|-----------------------------------|--------------------------|---------------------------------|
+| `blockyUI.enabled`                | Enable Blocky UI sidecar | `false`                         |
+| `blockyUI.image.repository`       | Blocky UI image          | `ghcr.io/gabeduartem/blocky-ui` |
+| `blockyUI.image.tag`              | Blocky UI image tag      | `v1.1.0`                        |
+| `blockyUI.port`                   | Blocky UI port           | `3000`                          |
+| `blockyUI.ingress.enabled`        | Enable ingress           | `false`                         |
+| `blockyUI.ingress.className`      | Ingress class            | `""`                            |
+| `blockyUI.ingress.hostname`       | Ingress hostname         | `blocky-ui.local`               |
+| `blockyUI.ingress.tls.secretName` | TLS secret name          | `""`                            |
 
 ## Monitoring
 
 The chart creates a ServiceMonitor with `release: prometheus` label by default, compatible with [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack).
 
 Import the Grafana dashboard: [Dashboard ID 13768](https://grafana.com/grafana/dashboards/13768)
+
+## Query Logging
+
+The chart supports query logging to MySQL, PostgreSQL, or console. Only **one** type can be enabled at a time.
+
+| Parameter                       | Description                                            | Default                                                                      |
+|---------------------------------|--------------------------------------------------------|------------------------------------------------------------------------------|
+| `config.queryLog.type`          | Logging type: `none`, `mysql`, `postgresql`, `console` | `none`                                                                       |
+| `config.queryLog.fields`        | Fields to log                                          | `[clientIP, clientName, responseReason, responseAnswer, question, duration]` |
+| `config.queryLog.flushInterval` | Flush interval                                         | `30s`                                                                        |
+
+### MySQL
+
+```yaml
+config:
+  queryLog:
+    type: mysql
+    mysql:
+      database: blocky
+      user: blocky
+      # Use existing secret (must have 'mysql-root-password' and 'mysql-password' keys)
+      existingSecret: ""  # If empty, a secret is auto-generated
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      persistence:
+        enabled: true
+        storageClass: ""  # Uses default if empty
+        size: 5Gi
+```
+
+#### External MySQL
+
+Use an external MySQL database instead of deploying one:
+
+```yaml
+config:
+  queryLog:
+    type: mysql
+    mysql:
+      database: blocky
+      user: blocky
+      external:
+        hostname: mysql.example.com
+        port: 3306
+        secretName: my-mysql-secret
+        secretKey: password
+```
+
+### PostgreSQL
+
+```yaml
+config:
+  queryLog:
+    type: postgresql
+    postgresql:
+      database: blocky
+      user: blocky
+      # Use existing secret (must have 'postgresql-password' key)
+      existingSecret: ""  # If empty, a secret is auto-generated
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      persistence:
+        enabled: true
+        storageClass: ""
+        size: 5Gi
+```
+
+#### External PostgreSQL
+
+Use an external PostgreSQL database instead of deploying one:
+
+```yaml
+config:
+  queryLog:
+    type: postgresql
+    postgresql:
+      database: blocky
+      user: blocky
+      external:
+        hostname: postgresql.example.com
+        port: 5432
+        secretName: my-postgresql-secret
+        secretKey: password
+```
+
+### Console
+
+```yaml
+config:
+  queryLog:
+    type: console
+```
 
 ## Default Lists
 
