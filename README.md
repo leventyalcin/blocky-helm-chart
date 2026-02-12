@@ -63,19 +63,21 @@ See [values.yaml](values.yaml) for the full list of configurable parameters.
 
 ### Key Parameters
 
-| Parameter                  | Description                                             | Default                  |
-|----------------------------|---------------------------------------------------------|--------------------------|
-| `replicaCount`             | Number of replicas                                      | `1`                      |
-| `image.repository`         | Blocky container image                                  | `ghcr.io/0xerr0r/blocky` |
-| `image.tag`                | Image tag                                               | `latest`                 |
-| `dnsService.type`          | DNS service type                                        | `LoadBalancer`           |
-| `dnsService.port`          | DNS port                                                | `53`                     |
-| `webService.type`          | Blocky API service type                                 | `ClusterIP`              |
-| `webService.port`          | Blocky API port                                         | `4000`                   |
-| `blockyUI.enabled`         | Enable Blocky UI sidecar                                | `false`                  |
-| `blockyUI.ingress.enabled` | Enable ingress for Blocky UI                            | `false`                  |
-| `config.queryLog.type`     | Query logging: `none`, `mysql`, `postgresql`, `console` | `none`                   |
-| `serviceMonitor.enabled`   | Enable ServiceMonitor                                   | `true`                   |
+| Parameter                               | Description                                                           | Default                  |
+|-----------------------------------------|-----------------------------------------------------------------------|--------------------------|
+| `replicaCount`                          | Number of replicas                                                    | `1`                      |
+| `image.repository`                      | Blocky container image                                                | `ghcr.io/0xerr0r/blocky` |
+| `image.tag`                             | Image tag                                                             | `latest`                 |
+| `dnsService.type`                       | DNS service type                                                      | `LoadBalancer`           |
+| `dnsService.port`                       | DNS port                                                              | `53`                     |
+| `webService.type`                       | Blocky API service type                                               | `ClusterIP`              |
+| `webService.port`                       | Blocky API port                                                       | `4000`                   |
+| `blockyUI.enabled`                      | Enable Blocky UI sidecar                                              | `false`                  |
+| `blockyUI.ingress.enabled`              | Enable ingress for Blocky UI                                          | `false`                  |
+| `config.queryLog.type`                  | Query logging: `none`, `mysql`, `postgresql`, `console`               | `none`                   |
+| `config.blocking.loading.refreshPeriod` | How often to refresh blocklists (Go duration, e.g. `168h` for 7 days) | `168h`                   |
+| `config.blocking.loading.strategy`      | List loading strategy: `fast`, `failOnError`, `blocking`              | `fast`                   |
+| `serviceMonitor.enabled`                | Enable ServiceMonitor                                                 | `true`                   |
 
 ### Examples
 
