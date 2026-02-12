@@ -98,6 +98,31 @@ config:
         - osid_nl
     blockType: zeroIp
     blockTTL: 6h
+    # Loading configuration for block/allow lists
+    loading:
+      refreshPeriod: 168h
+      downloads:
+        timeout: 4m
+        attempts: 5
+        cooldown: 10s
+      concurrency: 4
+      strategy: fast
+      maxErrorsPerSource: 25
+
+  # Hosts file sources configuration
+  hostsFile:
+    sources: []
+    # Example:
+    # - /etc/hosts
+    # - https://example.com/hosts
+    loading:
+      refreshPeriod: 168h
+      downloads:
+        timeout: 4m
+        attempts: 5
+        cooldown: 10s
+      strategy: fast
+      maxErrorsPerSource: 25
 
   # Caching configuration
   caching:

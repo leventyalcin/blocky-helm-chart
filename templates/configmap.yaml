@@ -61,6 +61,67 @@ data:
       {{- if .Values.config.blocking.blockTTL }}
       blockTTL: {{ .Values.config.blocking.blockTTL }}
       {{- end }}
+      {{- if .Values.config.blocking.loading }}
+      loading:
+        {{- if .Values.config.blocking.loading.refreshPeriod }}
+        refreshPeriod: {{ .Values.config.blocking.loading.refreshPeriod }}
+        {{- end }}
+        {{- if .Values.config.blocking.loading.downloads }}
+        downloads:
+          {{- if .Values.config.blocking.loading.downloads.timeout }}
+          timeout: {{ .Values.config.blocking.loading.downloads.timeout }}
+          {{- end }}
+          {{- if .Values.config.blocking.loading.downloads.attempts }}
+          attempts: {{ .Values.config.blocking.loading.downloads.attempts }}
+          {{- end }}
+          {{- if .Values.config.blocking.loading.downloads.cooldown }}
+          cooldown: {{ .Values.config.blocking.loading.downloads.cooldown }}
+          {{- end }}
+        {{- end }}
+        {{- if .Values.config.blocking.loading.concurrency }}
+        concurrency: {{ .Values.config.blocking.loading.concurrency }}
+        {{- end }}
+        {{- if .Values.config.blocking.loading.strategy }}
+        strategy: {{ .Values.config.blocking.loading.strategy }}
+        {{- end }}
+        {{- if .Values.config.blocking.loading.maxErrorsPerSource }}
+        maxErrorsPerSource: {{ .Values.config.blocking.loading.maxErrorsPerSource }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+
+    {{- if .Values.config.hostsFile }}
+    hostsFile:
+      {{- if .Values.config.hostsFile.sources }}
+      sources:
+        {{- range .Values.config.hostsFile.sources }}
+        - {{ . }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.config.hostsFile.loading }}
+      loading:
+        {{- if .Values.config.hostsFile.loading.refreshPeriod }}
+        refreshPeriod: {{ .Values.config.hostsFile.loading.refreshPeriod }}
+        {{- end }}
+        {{- if .Values.config.hostsFile.loading.downloads }}
+        downloads:
+          {{- if .Values.config.hostsFile.loading.downloads.timeout }}
+          timeout: {{ .Values.config.hostsFile.loading.downloads.timeout }}
+          {{- end }}
+          {{- if .Values.config.hostsFile.loading.downloads.attempts }}
+          attempts: {{ .Values.config.hostsFile.loading.downloads.attempts }}
+          {{- end }}
+          {{- if .Values.config.hostsFile.loading.downloads.cooldown }}
+          cooldown: {{ .Values.config.hostsFile.loading.downloads.cooldown }}
+          {{- end }}
+        {{- end }}
+        {{- if .Values.config.hostsFile.loading.strategy }}
+        strategy: {{ .Values.config.hostsFile.loading.strategy }}
+        {{- end }}
+        {{- if .Values.config.hostsFile.loading.maxErrorsPerSource }}
+        maxErrorsPerSource: {{ .Values.config.hostsFile.loading.maxErrorsPerSource }}
+        {{- end }}
+      {{- end }}
     {{- end }}
 
     {{- if .Values.config.caching }}
