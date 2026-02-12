@@ -28,6 +28,54 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if or (eq .Values.config.queryLog.type "mysql") (eq .Values.config.queryLog.type "postgresql") }}
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              {{- if eq .Values.config.queryLog.type "mysql" }}
+              until nc -z {{ include "blocky.mysql.host" . }} {{ include "blocky.mysql.port" . }}; do
+                echo "Waiting for MySQL at {{ include "blocky.mysql.host" . }}:{{ include "blocky.mysql.port" . }}..."
+                sleep 3
+              done
+              echo "MySQL is ready!"
+              {{- else if eq .Values.config.queryLog.type "postgresql" }}
+              until nc -z {{ include "blocky.postgresql.host" . }} {{ include "blocky.postgresql.port" . }}; do
+                echo "Waiting for PostgreSQL at {{ include "blocky.postgresql.host" . }}:{{ include "blocky.postgresql.port" . }}..."
+                sleep 3
+              done
+              echo "PostgreSQL is ready!"
+              {{- end }}
+        - name: config-processor
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - sed "s|\$BLOCKY_DATABASE_PASSWORD|$BLOCKY_DATABASE_PASSWORD|g" /config-template/config.yml > /config/config.yml
+          env:
+            {{- if eq .Values.config.queryLog.type "mysql" }}
+            - name: BLOCKY_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "blocky.mysql.secretName" . }}
+                  key: {{ include "blocky.mysql.secretKey" . }}
+            {{- else if eq .Values.config.queryLog.type "postgresql" }}
+            - name: BLOCKY_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "blocky.postgresql.secretName" . }}
+                  key: {{ include "blocky.postgresql.secretKey" . }}
+            {{- end }}
+          volumeMounts:
+            - name: config-template
+              mountPath: /config-template
+              readOnly: true
+            - name: config
+              mountPath: /config
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           {{- with .Values.securityContext }}
@@ -38,7 +86,11 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: BLOCKY_CONFIG_FILE
-              value: /app/config.yml
+              {{- if or (eq .Values.config.queryLog.type "mysql") (eq .Values.config.queryLog.type "postgresql") }}
+              value: /config/config.yml
+              {{- else }}
+              value: /config-template/config.yml
+              {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -69,10 +121,15 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
+            {{- if or (eq .Values.config.queryLog.type "mysql") (eq .Values.config.queryLog.type "postgresql") }}
             - name: config
-              mountPath: /app/config.yml
-              subPath: config.yml
+              mountPath: /config
               readOnly: true
+            {{- else }}
+            - name: config-template
+              mountPath: /config-template
+              readOnly: true
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -117,9 +174,13 @@ spec:
           {{- end }}
         {{- end }}
       volumes:
-        - name: config
+        - name: config-template
           configMap:
             name: {{ include "blocky.fullname" . }}-config
+        {{- if or (eq .Values.config.queryLog.type "mysql") (eq .Values.config.queryLog.type "postgresql") }}
+        - name: config
+          emptyDir: {}
+        {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

@@ -1,3 +1,4 @@
+{{- include "blocky.validateQueryLogType" . -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -123,4 +124,32 @@ data:
         {{ $domain }}: {{ $server }}
         {{- end }}
     {{- end }}
+    {{- end }}
+
+    {{- if and .Values.config.queryLog (ne .Values.config.queryLog.type "none") }}
+    queryLog:
+      type: {{ .Values.config.queryLog.type }}
+      {{- if eq .Values.config.queryLog.type "mysql" }}
+      target: {{ .Values.config.queryLog.mysql.user }}:$BLOCKY_DATABASE_PASSWORD@tcp({{ include "blocky.mysql.host" . }}:{{ include "blocky.mysql.port" . }})/{{ .Values.config.queryLog.mysql.database }}?charset=utf8mb4&parseTime=True&loc=Local
+      {{- else if eq .Values.config.queryLog.type "postgresql" }}
+      target: postgres://{{ .Values.config.queryLog.postgresql.user }}:$BLOCKY_DATABASE_PASSWORD@{{ include "blocky.postgresql.host" . }}:{{ include "blocky.postgresql.port" . }}/{{ .Values.config.queryLog.postgresql.database }}?sslmode=disable
+      {{- end }}
+      {{- if .Values.config.queryLog.flushInterval }}
+      flushInterval: {{ .Values.config.queryLog.flushInterval }}
+      {{- end }}
+      {{- if .Values.config.queryLog.logRetentionDays }}
+      logRetentionDays: {{ .Values.config.queryLog.logRetentionDays }}
+      {{- end }}
+      {{- if .Values.config.queryLog.creationAttempts }}
+      creationAttempts: {{ .Values.config.queryLog.creationAttempts }}
+      {{- end }}
+      {{- if .Values.config.queryLog.creationCooldown }}
+      creationCooldown: {{ .Values.config.queryLog.creationCooldown }}
+      {{- end }}
+      {{- if .Values.config.queryLog.fields }}
+      fields:
+        {{- range .Values.config.queryLog.fields }}
+        - {{ . }}
+        {{- end }}
+      {{- end }}
     {{- end }}
