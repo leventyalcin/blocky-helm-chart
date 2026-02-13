@@ -3,6 +3,29 @@ entries:
   blocky:
   - apiVersion: v2
     appVersion: latest
+    created: "2026-02-13T08:56:15.939632141Z"
+    description: A Helm chart for Blocky DNS Server - Fast and lightweight DNS proxy
+      with ad-blocking
+    digest: 04be71efd91d3caf22ea6df5bc334e9447fa53e39c336df9cc429cacccf7964b
+    home: https://0xerr0r.github.io/blocky/
+    keywords:
+    - dns
+    - adblock
+    - privacy
+    - blocky
+    - dns-proxy
+    maintainers:
+    - name: Levent Yalcin
+      url: https://github.com/leventyalcin
+    name: blocky
+    sources:
+    - https://github.com/0xERR0R/blocky
+    type: application
+    urls:
+    - https://leventyalcin.github.io/blocky-helm-chart/blocky-1.0.4.tgz
+    version: 1.0.4
+  - apiVersion: v2
+    appVersion: latest
     created: "2026-02-13T00:24:56.303769993Z"
     description: A Helm chart for Blocky DNS Server - Fast and lightweight DNS proxy
       with ad-blocking
@@ -93,4 +116,4 @@ entries:
     urls:
     - https://leventyalcin.github.io/blocky-helm-chart/blocky-1.0.0.tgz
     version: 1.0.0
-generated: "2026-02-13T00:24:56.298447996Z"
+generated: "2026-02-13T08:56:15.938001571Z"
