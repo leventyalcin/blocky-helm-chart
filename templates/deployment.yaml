@@ -28,9 +28,13 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if or (eq .Values.config.queryLog.type "mysql") (eq .Values.config.queryLog.type "postgresql") }}
+      {{- $needsConfigProcessing := or (eq .Values.config.queryLog.type "mysql") (eq .Values.config.queryLog.type "postgresql") (and .Values.config.redis.enabled .Values.config.redis.external.address .Values.config.redis.external.secretName) }}
+      {{- $needsWaitForDependencies := or (eq .Values.config.queryLog.type "mysql") (eq .Values.config.queryLog.type "postgresql") }}
+      {{- $needsInitContainers := or $needsConfigProcessing $needsWaitForDependencies }}
+      {{- if $needsInitContainers }}
       initContainers:
-        - name: wait-for-db
+        {{- if $needsWaitForDependencies }}
+        - name: wait-for-dependencies
           image: busybox:1.36
           command:
             - sh
@@ -49,12 +53,24 @@ spec:
               done
               echo "PostgreSQL is ready!"
               {{- end }}
+        {{- end }}
+        {{- if $needsConfigProcessing }}
         - name: config-processor
           image: busybox:1.36
           command:
             - sh
             - -c
-            - sed "s|\$BLOCKY_DATABASE_PASSWORD|$BLOCKY_DATABASE_PASSWORD|g" /config-template/config.yml > /config/config.yml
+            - |
+              cp /config-template/config.yml /config/config.yml
+              {{- if or (eq .Values.config.queryLog.type "mysql") (eq .Values.config.queryLog.type "postgresql") }}
+              sed -i "s|\$BLOCKY_DATABASE_PASSWORD|$BLOCKY_DATABASE_PASSWORD|g" /config/config.yml
+              {{- end }}
+              {{- if and .Values.config.redis.enabled .Values.config.redis.external.address .Values.config.redis.external.secretName }}
+              sed -i "s|\$REDIS_PASSWORD|$REDIS_PASSWORD|g" /config/config.yml
+              {{- end }}
+              {{- if and .Values.config.redis.enabled .Values.config.redis.external.sentinelAddresses .Values.config.redis.external.sentinelSecretName }}
+              sed -i "s|\$REDIS_SENTINEL_PASSWORD|$REDIS_SENTINEL_PASSWORD|g" /config/config.yml
+              {{- end }}
           env:
             {{- if eq .Values.config.queryLog.type "mysql" }}
             - name: BLOCKY_DATABASE_PASSWORD
@@ -69,12 +85,27 @@ spec:
                   name: {{ include "blocky.postgresql.secretName" . }}
                   key: {{ include "blocky.postgresql.secretKey" . }}
             {{- end }}
+            {{- if and .Values.config.redis.enabled .Values.config.redis.external.address .Values.config.redis.external.secretName }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.redis.external.secretName }}
+                  key: {{ .Values.config.redis.external.secretKey }}
+            {{- end }}
+            {{- if and .Values.config.redis.enabled .Values.config.redis.external.sentinelAddresses .Values.config.redis.external.sentinelSecretName }}
+            - name: REDIS_SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.redis.external.sentinelSecretName }}
+                  key: {{ .Values.config.redis.external.sentinelSecretKey }}
+            {{- end }}
           volumeMounts:
             - name: config-template
               mountPath: /config-template
               readOnly: true
             - name: config
               mountPath: /config
+      {{- end }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
@@ -86,7 +117,8 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: BLOCKY_CONFIG_FILE
-              {{- if or (eq .Values.config.queryLog.type "mysql") (eq .Values.config.queryLog.type "postgresql") }}
+              {{- $needsConfigProcessing := or (eq .Values.config.queryLog.type "mysql") (eq .Values.config.queryLog.type "postgresql") (and .Values.config.redis.enabled .Values.config.redis.external.address .Values.config.redis.external.secretName) }}
+              {{- if $needsConfigProcessing }}
               value: /config/config.yml
               {{- else }}
               value: /config-template/config.yml
@@ -121,7 +153,8 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
-            {{- if or (eq .Values.config.queryLog.type "mysql") (eq .Values.config.queryLog.type "postgresql") }}
+            {{- $needsConfigProcessing := or (eq .Values.config.queryLog.type "mysql") (eq .Values.config.queryLog.type "postgresql") (and .Values.config.redis.enabled .Values.config.redis.external.address .Values.config.redis.external.secretName) }}
+            {{- if $needsConfigProcessing }}
             - name: config
               mountPath: /config
               readOnly: true
@@ -173,11 +206,39 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
         {{- end }}
+        {{- if and .Values.config.redis.enabled (not .Values.config.redis.external.address) }}
+        - name: redis
+          image: "{{ .Values.config.redis.image.repository }}:{{ .Values.config.redis.image.tag }}"
+          imagePullPolicy: {{ .Values.config.redis.image.pullPolicy }}
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: redis
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: redis
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          {{- with .Values.config.redis.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
       volumes:
         - name: config-template
           configMap:
             name: {{ include "blocky.fullname" . }}-config
-        {{- if or (eq .Values.config.queryLog.type "mysql") (eq .Values.config.queryLog.type "postgresql") }}
+        {{- $needsConfigProcessing := or (eq .Values.config.queryLog.type "mysql") (eq .Values.config.queryLog.type "postgresql") (and .Values.config.redis.enabled .Values.config.redis.external.address .Values.config.redis.external.secretName) }}
+        {{- if $needsConfigProcessing }}
         - name: config
           emptyDir: {}
         {{- end }}
