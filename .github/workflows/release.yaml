@@ -66,6 +66,10 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Chart version: $VERSION"
 
+      - name: Package chart
+        run: |
+          helm package . -d /tmp/helm-releases
+
       - name: Check if gh-pages branch exists
         id: check_branch
         run: |
@@ -93,12 +97,6 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Package chart
-        if: steps.check_version.outputs.exists == 'false'
-        run: |
-          mkdir -p .helm-releases
-          helm package . -d .helm-releases
-
       - name: Prepare gh-pages directory
         if: steps.check_version.outputs.exists == 'false'
         run: |
@@ -111,16 +109,16 @@ jobs:
         if: steps.check_version.outputs.exists == 'false'
         run: |
           if [ -f gh-pages/index.yaml ]; then
-            helm repo index .helm-releases --url https://leventyalcin.github.io/blocky-helm-chart --merge gh-pages/index.yaml
+            helm repo index /tmp/helm-releases --url https://leventyalcin.github.io/blocky-helm-chart --merge gh-pages/index.yaml
           else
-            helm repo index .helm-releases --url https://leventyalcin.github.io/blocky-helm-chart
+            helm repo index /tmp/helm-releases --url https://leventyalcin.github.io/blocky-helm-chart
           fi
 
       - name: Copy files to gh-pages
         if: steps.check_version.outputs.exists == 'false'
         run: |
-          cp .helm-releases/*.tgz gh-pages/
-          cp .helm-releases/index.yaml gh-pages/
+          cp /tmp/helm-releases/blocky-${{ steps.chart_version.outputs.version }}.tgz gh-pages/
+          cp /tmp/helm-releases/index.yaml gh-pages/
 
       - name: Create index.html
         if: steps.check_version.outputs.exists == 'false'
@@ -174,12 +172,10 @@ jobs:
         run: |
           cd gh-pages
           if [ "${{ steps.check_branch.outputs.exists }}" == "true" ]; then
-            # Branch exists, just commit and push
             git add .
             git commit -m "Release chart version ${{ steps.chart_version.outputs.version }}"
             git push origin gh-pages
           else
-            # First time: init new repo and push
             git init
             git checkout -b gh-pages
             git add .
@@ -194,7 +190,7 @@ jobs:
           echo "=== DRY RUN ==="
           echo "Would release version: ${{ steps.chart_version.outputs.version }}"
           echo "Files to publish:"
-          ls -la .helm-releases/
+          ls -la /tmp/helm-releases/
           ls -la gh-pages/
 
       - name: Create GitHub Release
@@ -216,6 +212,6 @@ jobs:
             ### Files
             - [blocky-${{ steps.chart_version.outputs.version }}.tgz](https://leventyalcin.github.io/blocky-helm-chart/blocky-${{ steps.chart_version.outputs.version }}.tgz)
           files: |
-            .helm-releases/blocky-${{ steps.chart_version.outputs.version }}.tgz
+            /tmp/helm-releases/blocky-${{ steps.chart_version.outputs.version }}.tgz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
