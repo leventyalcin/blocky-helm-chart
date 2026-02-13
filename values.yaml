@@ -157,6 +157,41 @@ config:
     # Example:
     # internal.company.com: 10.0.0.1
 
+  # Redis configuration for cache synchronization between multiple Blocky instances
+  # https://0xerr0r.github.io/blocky/v0.23/configuration/#redis
+  redis:
+    # Enable Redis integration
+    enabled: false
+    database: 0
+    required: false
+    connectionAttempts: 10
+    connectionCooldown: 3s
+    # Redis image (only used when external.address is not set)
+    image:
+      repository: redis
+      tag: "7-alpine"
+      pullPolicy: IfNotPresent
+    # Redis resources (only used when external.address is not set)
+    resources:
+      limits:
+        cpu: 100m
+        memory: 64Mi
+      requests:
+        cpu: 50m
+        memory: 32Mi
+    # External Redis configuration
+    # If address is set, no sidecar container will be created
+    external:
+      address: ""
+      # Secret containing the Redis password
+      secretName: ""
+      secretKey: "redis-password"
+      # Sentinel addresses for HA setup (optional)
+      sentinelAddresses: []
+      # Sentinel password secret (optional)
+      sentinelSecretName: ""
+      sentinelSecretKey: "redis-sentinel-password"
+
   # Query logging configuration
   # Only ONE type can be enabled at a time: mysql, postgresql, console, or none
   queryLog:

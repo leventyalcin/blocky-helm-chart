@@ -77,6 +77,8 @@ See [values.yaml](values.yaml) for the full list of configurable parameters.
 | `config.queryLog.type`                  | Query logging: `none`, `mysql`, `postgresql`, `console`               | `none`                   |
 | `config.blocking.loading.refreshPeriod` | How often to refresh blocklists (Go duration, e.g. `168h` for 7 days) | `168h`                   |
 | `config.blocking.loading.strategy`      | List loading strategy: `fast`, `failOnError`, `blocking`              | `fast`                   |
+| `config.redis.enabled`                  | Enable Redis for cache synchronization                                | `false`                  |
+| `config.redis.external.address`         | External Redis address (disables sidecar if set)                      | `""`                     |
 | `serviceMonitor.enabled`                | Enable ServiceMonitor                                                 | `true`                   |
 
 ### Examples

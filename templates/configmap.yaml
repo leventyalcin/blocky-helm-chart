@@ -137,6 +137,37 @@ data:
       {{- end }}
     {{- end }}
 
+    {{- if .Values.config.redis.enabled }}
+    redis:
+      {{- if .Values.config.redis.external.address }}
+      address: {{ .Values.config.redis.external.address }}
+      {{- else }}
+      address: localhost:6379
+      {{- end }}
+      {{- if and .Values.config.redis.external.address .Values.config.redis.external.secretName }}
+      password: $REDIS_PASSWORD
+      {{- end }}
+      {{- if .Values.config.redis.database }}
+      database: {{ .Values.config.redis.database }}
+      {{- end }}
+      required: {{ .Values.config.redis.required }}
+      {{- if .Values.config.redis.connectionAttempts }}
+      connectionAttempts: {{ .Values.config.redis.connectionAttempts }}
+      {{- end }}
+      {{- if .Values.config.redis.connectionCooldown }}
+      connectionCooldown: {{ .Values.config.redis.connectionCooldown }}
+      {{- end }}
+      {{- if .Values.config.redis.external.sentinelAddresses }}
+      sentinelAddresses:
+        {{- range .Values.config.redis.external.sentinelAddresses }}
+        - {{ . }}
+        {{- end }}
+      {{- end }}
+      {{- if and .Values.config.redis.external.sentinelAddresses .Values.config.redis.external.sentinelSecretName }}
+      sentinelPassword: $REDIS_SENTINEL_PASSWORD
+      {{- end }}
+    {{- end }}
+
     {{- if .Values.config.log }}
     log:
       {{- if .Values.config.log.level }}
