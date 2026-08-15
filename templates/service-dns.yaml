@@ -29,4 +29,5 @@ spec:
       protocol: UDP
   selector:
     {{- include "blocky.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: blocky
 {{- end }}
