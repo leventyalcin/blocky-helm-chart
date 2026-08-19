@@ -61,6 +61,27 @@ helm install blocky .
 
 See [values.yaml](values.yaml) for the full list of configurable parameters.
 
+### How `config` is rendered
+
+Everything under `config:` is passed straight through to Blocky's `config.yml` with `toYaml`.
+The chart does **not** maintain a list of supported keys, so **any** Blocky setting can be used
+here — including ones added after this chart was released. Check the
+[Blocky configuration reference](https://0xerr0r.github.io/blocky/latest/configuration/) for
+what is available.
+
+> **Blocky v0.31+ validates its config against a JSON schema with `additionalProperties: false`.
+> An unknown or misspelled key is fatal at start-up, not ignored.** If the pod crashes right
+> after an upgrade, the first few log lines name the offending key.
+
+Three keys under `config:` are **chart-specific** and are translated rather than passed through,
+because Blocky itself does not accept them:
+
+| You set | Blocky receives |
+|---------|-----------------|
+| `config.queryLog.mysql` / `config.queryLog.postgresql` | `queryLog.target` (DSN, password injected at runtime) |
+| `config.redis.enabled` / `.external` / `.image` / `.resources` | `redis.address` (+ password references) |
+| empty `config.conditional` / `config.customDNS` / `config.hostsFile.sources` | omitted entirely |
+
 ### Key Parameters
 
 | Parameter                               | Description                                                           | Default                  |
@@ -77,6 +98,7 @@ See [values.yaml](values.yaml) for the full list of configurable parameters.
 | `config.queryLog.type`                  | Query logging: `none`, `mysql`, `postgresql`, `console`               | `none`                   |
 | `config.blocking.loading.refreshPeriod` | How often to refresh blocklists (Go duration, e.g. `168h` for 7 days) | `168h`                   |
 | `config.blocking.loading.strategy`      | List loading strategy: `fast`, `failOnError`, `blocking`              | `fast`                   |
+| `config.statistics.enable`              | In-memory 24h stats at `/api/stats` (required by Blocky UI v2)        | `false`                  |
 | `config.redis.enabled`                  | Enable Redis for cache synchronization                                | `false`                  |
 | `config.redis.external.address`         | External Redis address (disables sidecar if set)                      | `""`                     |
 | `serviceMonitor.enabled`                | Enable ServiceMonitor                                                 | `true`                   |
@@ -151,11 +173,24 @@ config:
 
 This chart includes optional support for [Blocky UI](https://github.com/gabeduartem/blocky-ui), a web interface for Blocky.
 
+> **Blocky UI v2.0.0 requires `config.statistics.enable: true`.** v2 dropped Prometheus as its
+> dashboard source and reads Blocky's rolling-24h `/api/stats` endpoint instead. That endpoint
+> only exists when statistics are enabled, so leaving it `false` gives you an empty overview.
+> Needs Blocky v0.34.0 or newer.
+
+When `config.queryLog.type` is `mysql` or `postgresql`, the chart also wires the UI's query-log
+browser automatically — it sets `QUERY_LOG_TYPE` and `QUERY_LOG_TARGET` for you. The database
+password is injected via `secretKeyRef` and referenced as `$(BLOCKY_DATABASE_PASSWORD)`, which
+kubelet expands at start-up, so **the password never appears in the rendered manifest**. No
+extra configuration is needed.
+
+Anything else can be passed via `blockyUI.env`, for example `INSTANCE_NAME`.
+
 | Parameter                         | Description              | Default                         |
 |-----------------------------------|--------------------------|---------------------------------|
 | `blockyUI.enabled`                | Enable Blocky UI sidecar | `false`                         |
 | `blockyUI.image.repository`       | Blocky UI image          | `ghcr.io/gabeduartem/blocky-ui` |
-| `blockyUI.image.tag`              | Blocky UI image tag      | `v1.1.0`                        |
+| `blockyUI.image.tag`              | Blocky UI image tag      | `2.0.0`                         |
 | `blockyUI.port`                   | Blocky UI port           | `3000`                          |
 | `blockyUI.ingress.enabled`        | Enable ingress           | `false`                         |
 | `blockyUI.ingress.className`      | Ingress class            | `""`                            |
@@ -167,6 +202,10 @@ This chart includes optional support for [Blocky UI](https://github.com/gabeduar
 The chart creates a ServiceMonitor with `release: prometheus` label by default, compatible with [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack).
 
 Import the Grafana dashboard: [Dashboard ID 13768](https://grafana.com/grafana/dashboards/13768)
+
+Note that Blocky UI no longer consumes these metrics — since v2.0.0 it reads `/api/stats`
+instead (see [Blocky UI](#blocky-ui)). Prometheus and the ServiceMonitor remain useful for
+Grafana, alerting and long-range history, and are independent of the UI.
 
 ## Query Logging
 

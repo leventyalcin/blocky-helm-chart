@@ -1,4 +1,71 @@
 {{- include "blocky.validateQueryLogType" . -}}
+{{- /*
+  config.yml is rendered by passing .Values.config through toYaml, NOT by enumerating
+  keys. That means every blocky config key is available without a chart change — which
+  matters because since blocky v0.31 the config is validated against a generated JSON
+  schema with additionalProperties: false, so this file must emit blocky's keys and
+  NOTHING else.
+
+  .Values.config carries three chart-only structures that blocky would reject. They are
+  stripped below and replaced with the real thing:
+    queryLog.mysql / queryLog.postgresql -> queryLog.target
+    redis.enabled/.external/.image/.resources -> redis.address (+ password refs)
+    empty conditional/customDNS/hostsFile.sources -> omitted entirely
+
+  The DSN keeps the LITERAL string $BLOCKY_DATABASE_PASSWORD. An init container in
+  deployment.yaml seds the real value in from the secret at start-up; do not resolve it
+  here or the password lands in the ConfigMap in plaintext.
+*/ -}}
+{{- $cfg := deepCopy .Values.config }}
+
+{{- /* ---- queryLog ---- */}}
+{{- if eq .Values.config.queryLog.type "none" }}
+{{-   $_ := unset $cfg "queryLog" }}
+{{- else }}
+{{-   $ql := index $cfg "queryLog" }}
+{{-   $_ := unset $ql "mysql" }}
+{{-   $_ := unset $ql "postgresql" }}
+{{-   if eq .Values.config.queryLog.type "mysql" }}
+{{-     $_ := set $ql "target" (printf "%s:$BLOCKY_DATABASE_PASSWORD@tcp(%s:%v)/%s?charset=utf8mb4&parseTime=True&loc=Local" .Values.config.queryLog.mysql.user (include "blocky.mysql.host" .) (include "blocky.mysql.port" .) .Values.config.queryLog.mysql.database) }}
+{{-   else if eq .Values.config.queryLog.type "postgresql" }}
+{{-     $_ := set $ql "target" (printf "postgres://%s:$BLOCKY_DATABASE_PASSWORD@%s:%v/%s?sslmode=disable" .Values.config.queryLog.postgresql.user (include "blocky.postgresql.host" .) (include "blocky.postgresql.port" .) .Values.config.queryLog.postgresql.database) }}
+{{-   end }}
+{{- end }}
+
+{{- /* ---- redis ---- */}}
+{{- if .Values.config.redis.enabled }}
+{{-   $r := index $cfg "redis" }}
+{{-   $_ := set $r "address" (.Values.config.redis.external.address | default "localhost:6379") }}
+{{-   if and .Values.config.redis.external.address .Values.config.redis.external.secretName }}
+{{-     $_ := set $r "password" "$REDIS_PASSWORD" }}
+{{-   end }}
+{{-   if .Values.config.redis.external.sentinelAddresses }}
+{{-     $_ := set $r "sentinelAddresses" .Values.config.redis.external.sentinelAddresses }}
+{{-     if .Values.config.redis.external.sentinelSecretName }}
+{{-       $_ := set $r "sentinelPassword" "$REDIS_SENTINEL_PASSWORD" }}
+{{-     end }}
+{{-   end }}
+{{-   range $k := list "enabled" "external" "image" "resources" }}
+{{-     $_ := unset $r $k }}
+{{-   end }}
+{{- else }}
+{{-   $_ := unset $cfg "redis" }}
+{{- end }}
+
+{{- /* ---- omit empty optional blocks (blocky dislikes empty mappings here) ---- */}}
+{{- if not (dig "conditional" "mapping" "" .Values.config) }}
+{{-   $_ := unset $cfg "conditional" }}
+{{- else }}
+{{-   $_ := set (index $cfg "conditional") "fallbackUpstream" (dig "conditional" "fallbackUpstream" true .Values.config) }}
+{{- end }}
+{{- if not (dig "customDNS" "mapping" "" .Values.config) }}
+{{-   $_ := unset $cfg "customDNS" }}
+{{- else if not (dig "customDNS" "customTTL" "" .Values.config) }}
+{{-   $_ := set (index $cfg "customDNS") "customTTL" "1h" }}
+{{- end }}
+{{- if and (hasKey $cfg "hostsFile") (not (dig "hostsFile" "sources" "" .Values.config)) }}
+{{-   $_ := unset (index $cfg "hostsFile") "sources" }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -7,241 +74,4 @@ metadata:
     {{- include "blocky.labels" . | nindent 4 }}
 data:
   config.yml: |
-    upstreams:
-      groups:
-        {{- range $group, $servers := .Values.config.upstreams.groups }}
-        {{ $group }}:
-          {{- range $servers }}
-          - {{ . }}
-          {{- end }}
-        {{- end }}
-      {{- if .Values.config.upstreams.strategy }}
-      strategy: {{ .Values.config.upstreams.strategy }}
-      {{- end }}
-      {{- if .Values.config.upstreams.timeout }}
-      timeout: {{ .Values.config.upstreams.timeout }}
-      {{- end }}
-
-    ports:
-      dns: {{ .Values.config.ports.dns }}
-      http: {{ .Values.config.ports.http }}
-
-    {{- if .Values.config.blocking }}
-    blocking:
-      {{- if .Values.config.blocking.denylists }}
-      denylists:
-        {{- range $group, $lists := .Values.config.blocking.denylists }}
-        {{ $group }}:
-          {{- range $lists }}
-          - {{ . }}
-          {{- end }}
-        {{- end }}
-      {{- end }}
-      {{- if .Values.config.blocking.allowlists }}
-      allowlists:
-        {{- range $group, $lists := .Values.config.blocking.allowlists }}
-        {{ $group }}:
-          {{- range $lists }}
-          - {{ . }}
-          {{- end }}
-        {{- end }}
-      {{- end }}
-      {{- if .Values.config.blocking.clientGroupsBlock }}
-      clientGroupsBlock:
-        {{- range $client, $groups := .Values.config.blocking.clientGroupsBlock }}
-        {{ $client }}:
-          {{- range $groups }}
-          - {{ . }}
-          {{- end }}
-        {{- end }}
-      {{- end }}
-      {{- if .Values.config.blocking.blockType }}
-      blockType: {{ .Values.config.blocking.blockType }}
-      {{- end }}
-      {{- if .Values.config.blocking.blockTTL }}
-      blockTTL: {{ .Values.config.blocking.blockTTL }}
-      {{- end }}
-      {{- if .Values.config.blocking.loading }}
-      loading:
-        {{- if .Values.config.blocking.loading.refreshPeriod }}
-        refreshPeriod: {{ .Values.config.blocking.loading.refreshPeriod }}
-        {{- end }}
-        {{- if .Values.config.blocking.loading.downloads }}
-        downloads:
-          {{- if .Values.config.blocking.loading.downloads.timeout }}
-          timeout: {{ .Values.config.blocking.loading.downloads.timeout }}
-          {{- end }}
-          {{- if .Values.config.blocking.loading.downloads.attempts }}
-          attempts: {{ .Values.config.blocking.loading.downloads.attempts }}
-          {{- end }}
-          {{- if .Values.config.blocking.loading.downloads.cooldown }}
-          cooldown: {{ .Values.config.blocking.loading.downloads.cooldown }}
-          {{- end }}
-        {{- end }}
-        {{- if .Values.config.blocking.loading.concurrency }}
-        concurrency: {{ .Values.config.blocking.loading.concurrency }}
-        {{- end }}
-        {{- if .Values.config.blocking.loading.strategy }}
-        strategy: {{ .Values.config.blocking.loading.strategy }}
-        {{- end }}
-        {{- if .Values.config.blocking.loading.maxErrorsPerSource }}
-        maxErrorsPerSource: {{ .Values.config.blocking.loading.maxErrorsPerSource }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
-
-    {{- if .Values.config.hostsFile }}
-    hostsFile:
-      {{- if .Values.config.hostsFile.sources }}
-      sources:
-        {{- range .Values.config.hostsFile.sources }}
-        - {{ . }}
-        {{- end }}
-      {{- end }}
-      {{- if .Values.config.hostsFile.loading }}
-      loading:
-        {{- if .Values.config.hostsFile.loading.refreshPeriod }}
-        refreshPeriod: {{ .Values.config.hostsFile.loading.refreshPeriod }}
-        {{- end }}
-        {{- if .Values.config.hostsFile.loading.downloads }}
-        downloads:
-          {{- if .Values.config.hostsFile.loading.downloads.timeout }}
-          timeout: {{ .Values.config.hostsFile.loading.downloads.timeout }}
-          {{- end }}
-          {{- if .Values.config.hostsFile.loading.downloads.attempts }}
-          attempts: {{ .Values.config.hostsFile.loading.downloads.attempts }}
-          {{- end }}
-          {{- if .Values.config.hostsFile.loading.downloads.cooldown }}
-          cooldown: {{ .Values.config.hostsFile.loading.downloads.cooldown }}
-          {{- end }}
-        {{- end }}
-        {{- if .Values.config.hostsFile.loading.strategy }}
-        strategy: {{ .Values.config.hostsFile.loading.strategy }}
-        {{- end }}
-        {{- if .Values.config.hostsFile.loading.maxErrorsPerSource }}
-        maxErrorsPerSource: {{ .Values.config.hostsFile.loading.maxErrorsPerSource }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
-
-    {{- if .Values.config.caching }}
-    caching:
-      {{- if .Values.config.caching.minTime }}
-      minTime: {{ .Values.config.caching.minTime }}
-      {{- end }}
-      {{- if .Values.config.caching.maxTime }}
-      maxTime: {{ .Values.config.caching.maxTime }}
-      {{- end }}
-      {{- if .Values.config.caching.prefetching }}
-      prefetching: {{ .Values.config.caching.prefetching }}
-      {{- end }}
-    {{- end }}
-
-    {{- if .Values.config.redis.enabled }}
-    redis:
-      {{- if .Values.config.redis.external.address }}
-      address: {{ .Values.config.redis.external.address }}
-      {{- else }}
-      address: localhost:6379
-      {{- end }}
-      {{- if and .Values.config.redis.external.address .Values.config.redis.external.secretName }}
-      password: $REDIS_PASSWORD
-      {{- end }}
-      {{- if .Values.config.redis.database }}
-      database: {{ .Values.config.redis.database }}
-      {{- end }}
-      required: {{ .Values.config.redis.required }}
-      {{- if .Values.config.redis.connectionAttempts }}
-      connectionAttempts: {{ .Values.config.redis.connectionAttempts }}
-      {{- end }}
-      {{- if .Values.config.redis.connectionCooldown }}
-      connectionCooldown: {{ .Values.config.redis.connectionCooldown }}
-      {{- end }}
-      {{- if .Values.config.redis.external.sentinelAddresses }}
-      sentinelAddresses:
-        {{- range .Values.config.redis.external.sentinelAddresses }}
-        - {{ . }}
-        {{- end }}
-      {{- end }}
-      {{- if and .Values.config.redis.external.sentinelAddresses .Values.config.redis.external.sentinelSecretName }}
-      sentinelPassword: $REDIS_SENTINEL_PASSWORD
-      {{- end }}
-    {{- end }}
-
-    {{- if .Values.config.log }}
-    log:
-      {{- if .Values.config.log.level }}
-      level: {{ .Values.config.log.level }}
-      {{- end }}
-      {{- if .Values.config.log.format }}
-      format: {{ .Values.config.log.format }}
-      {{- end }}
-      {{- if .Values.config.log.privacy }}
-      privacy: {{ .Values.config.log.privacy }}
-      {{- end }}
-      {{- if .Values.config.log.timestamp }}
-      timestamp: {{ .Values.config.log.timestamp }}
-      {{- end }}
-    {{- end }}
-
-    {{- if .Values.config.prometheus }}
-    prometheus:
-      enable: {{ .Values.config.prometheus.enable }}
-      path: {{ .Values.config.prometheus.path }}
-    {{- end }}
-
-    {{- if and .Values.config.customDNS .Values.config.customDNS.mapping }}
-    {{- if gt (len .Values.config.customDNS.mapping) 0 }}
-    customDNS:
-      customTTL: {{ .Values.config.customDNS.customTTL | default "1h" }}
-      mapping:
-        {{- range $domain, $ip := .Values.config.customDNS.mapping }}
-        {{ $domain }}: {{ $ip }}
-        {{- end }}
-    {{- end }}
-    {{- end }}
-
-    {{- if and .Values.config.conditional .Values.config.conditional.mapping }}
-    {{- if gt (len .Values.config.conditional.mapping) 0 }}
-    conditional:
-      fallbackUpstream: {{ .Values.config.conditional.fallbackUpstream | default true }}
-      {{- if gt (len .Values.config.conditional.rewrite) 0 }}
-      rewrite:
-      {{- range $domain, $rewrite_domain := .Values.config.conditional.mapping }}
-        {{ $domain }}: {{ $rewrite_domain }}
-      {{- end }}
-      {{- end }}
-      mapping:
-        {{- range $domain, $server := .Values.config.conditional.mapping }}
-        {{ $domain }}: {{ $server }}
-        {{- end }}
-    {{- end }}
-    {{- end }}
-
-    {{- if and .Values.config.queryLog (ne .Values.config.queryLog.type "none") }}
-    queryLog:
-      type: {{ .Values.config.queryLog.type }}
-      {{- if eq .Values.config.queryLog.type "mysql" }}
-      target: {{ .Values.config.queryLog.mysql.user }}:$BLOCKY_DATABASE_PASSWORD@tcp({{ include "blocky.mysql.host" . }}:{{ include "blocky.mysql.port" . }})/{{ .Values.config.queryLog.mysql.database }}?charset=utf8mb4&parseTime=True&loc=Local
-      {{- else if eq .Values.config.queryLog.type "postgresql" }}
-      target: postgres://{{ .Values.config.queryLog.postgresql.user }}:$BLOCKY_DATABASE_PASSWORD@{{ include "blocky.postgresql.host" . }}:{{ include "blocky.postgresql.port" . }}/{{ .Values.config.queryLog.postgresql.database }}?sslmode=disable
-      {{- end }}
-      {{- if .Values.config.queryLog.flushInterval }}
-      flushInterval: {{ .Values.config.queryLog.flushInterval }}
-      {{- end }}
-      {{- if .Values.config.queryLog.logRetentionDays }}
-      logRetentionDays: {{ .Values.config.queryLog.logRetentionDays }}
-      {{- end }}
-      {{- if .Values.config.queryLog.creationAttempts }}
-      creationAttempts: {{ .Values.config.queryLog.creationAttempts }}
-      {{- end }}
-      {{- if .Values.config.queryLog.creationCooldown }}
-      creationCooldown: {{ .Values.config.queryLog.creationCooldown }}
-      {{- end }}
-      {{- if .Values.config.queryLog.fields }}
-      fields:
-        {{- range .Values.config.queryLog.fields }}
-        - {{ . }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
+{{ toYaml $cfg | indent 4 }}

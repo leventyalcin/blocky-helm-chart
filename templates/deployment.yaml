@@ -179,6 +179,33 @@ spec:
           env:
             - name: BLOCKY_API_URL
               value: "http://localhost:{{ .Values.config.ports.http }}"
+            {{- /*
+              Query-log browsing in BlockyUI needs a DSN containing the DB password.
+              The password is injected via secretKeyRef and referenced with $(VAR),
+              which kubelet expands against env entries declared EARLIER in this same
+              container — so the password never appears in the rendered manifest.
+            */}}
+            {{- if eq .Values.config.queryLog.type "mysql" }}
+            - name: BLOCKY_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "blocky.mysql.secretName" . }}
+                  key: {{ include "blocky.mysql.secretKey" . }}
+            - name: QUERY_LOG_TYPE
+              value: "mysql"
+            - name: QUERY_LOG_TARGET
+              value: "mysql://{{ .Values.config.queryLog.mysql.user }}:$(BLOCKY_DATABASE_PASSWORD)@{{ include "blocky.mysql.host" . }}:{{ include "blocky.mysql.port" . }}/{{ .Values.config.queryLog.mysql.database }}"
+            {{- else if eq .Values.config.queryLog.type "postgresql" }}
+            - name: BLOCKY_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "blocky.postgresql.secretName" . }}
+                  key: {{ include "blocky.postgresql.secretKey" . }}
+            - name: QUERY_LOG_TYPE
+              value: "postgresql"
+            - name: QUERY_LOG_TARGET
+              value: "postgresql://{{ .Values.config.queryLog.postgresql.user }}:$(BLOCKY_DATABASE_PASSWORD)@{{ include "blocky.postgresql.host" . }}:{{ include "blocky.postgresql.port" . }}/{{ .Values.config.queryLog.postgresql.database }}"
+            {{- end }}
             {{- range $key, $value := .Values.blockyUI.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}
