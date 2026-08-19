@@ -142,6 +142,12 @@ config:
     enable: true
     path: /metrics
 
+  # In-memory statistics (rolling 24h) served at /api/stats.
+  # BlockyUI v2.0.0+ reads its overview from this endpoint instead of Prometheus,
+  # so leaving this false gives the UI an empty dashboard. Requires blocky v0.34.0+.
+  statistics:
+    enable: false
+
   # Optional: Custom DNS entries
   customDNS:
     customTTL: 1h
@@ -332,7 +338,7 @@ blockyUI:
   image:
     repository: ghcr.io/gabeduartem/blocky-ui
     pullPolicy: IfNotPresent
-    tag: "1.5.0"
+    tag: "2.0.0"
   port: 3000
   # Environment variables for blocky-ui
   env:
