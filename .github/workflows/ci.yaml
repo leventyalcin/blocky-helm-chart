@@ -58,6 +58,17 @@ jobs:
             --set dnsService.type=ClusterIP \
             --set serviceMonitor.enabled=false
 
+      - name: Template with a pinned DNS clusterIP
+        run: |
+          helm template test-release . --set dnsService.clusterIP=10.43.0.53 \
+            | grep -q "clusterIP: 10.43.0.53"
+
+      - name: Template without a pinned DNS clusterIP emits no clusterIP
+        run: |
+          if helm template test-release . | grep -q "clusterIP:"; then
+            echo "clusterIP must not be rendered when unset"; exit 1
+          fi
+
   kubeconform:
     name: Validate Kubernetes Manifests
     runs-on: ubuntu-latest

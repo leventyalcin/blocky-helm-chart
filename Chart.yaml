@@ -2,7 +2,7 @@ apiVersion: v2
 name: blocky
 description: A Helm chart for Blocky DNS Server - Fast and lightweight DNS proxy with ad-blocking
 type: application
-version: 1.1.0
+version: 1.2.0
 appVersion: "latest"
 keywords:
   - dns

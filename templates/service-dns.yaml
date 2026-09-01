@@ -15,6 +15,9 @@ spec:
   {{- if and (eq .Values.dnsService.type "LoadBalancer") .Values.dnsService.loadBalancerIP }}
   loadBalancerIP: {{ .Values.dnsService.loadBalancerIP }}
   {{- end }}
+  {{- if .Values.dnsService.clusterIP }}
+  clusterIP: {{ .Values.dnsService.clusterIP }}
+  {{- end }}
   {{- if .Values.dnsService.externalTrafficPolicy }}
   externalTrafficPolicy: {{ .Values.dnsService.externalTrafficPolicy }}
   {{- end }}
