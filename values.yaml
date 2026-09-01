@@ -323,6 +323,13 @@ dnsService:
   annotations: {}
   # loadBalancerIP: ""
   # externalTrafficPolicy: Local
+  #
+  # Pin the in-cluster address of the DNS service. Anything configured to resolve
+  # through Blocky -- CoreDNS forwarding a zone, for example -- needs an address that
+  # is known before the Service exists, and a dynamically allocated clusterIP is not.
+  # Must be free and inside the cluster's service CIDR. Leave unset to let Kubernetes
+  # allocate one. Set to "None" for a headless Service.
+  # clusterIP: ""
 
 # Web UI / HTTP Service configuration (Blocky API)
 webService:

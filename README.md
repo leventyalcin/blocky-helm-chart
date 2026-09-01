@@ -91,6 +91,7 @@ because Blocky itself does not accept them:
 | `image.tag`                             | Image tag                                                             | `latest`                 |
 | `dnsService.type`                       | DNS service type                                                      | `LoadBalancer`           |
 | `dnsService.port`                       | DNS port                                                              | `53`                     |
+| `dnsService.clusterIP`                  | Pin the in-cluster IP (must be free, inside the service CIDR)         | `""` (auto-allocated)    |
 | `webService.type`                       | Blocky API service type                                               | `ClusterIP`              |
 | `webService.port`                       | Blocky API port                                                       | `4000`                   |
 | `blockyUI.enabled`                      | Enable Blocky UI sidecar                                              | `false`                  |
