@@ -308,21 +308,6 @@ config:
 
 * StevenBlack
   * Unified hosts <https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts>
-* blocklistproject
-  * Abuse: <https://blocklistproject.github.io/Lists/abuse.txt>
-  * Ads: <https://blocklistproject.github.io/Lists/ads.txt>
-  * Crypto: <https://blocklistproject.github.io/Lists/crypto.txt>
-  * Drugs: <https://blocklistproject.github.io/Lists/drugs.txt>
-  * Fraud: <https://blocklistproject.github.io/Lists/fraud.txt>
-  * Gambling: <https://blocklistproject.github.io/Lists/gambling.txt>
-  * Malware: <https://blocklistproject.github.io/Lists/malware.txt>
-  * Phishing: <https://blocklistproject.github.io/Lists/phishing.txt>
-  * Piracy: <https://blocklistproject.github.io/Lists/piracy.txt>
-  * Ransomware: <https://blocklistproject.github.io/Lists/ransomware.txt>
-  * Redirect: <https://blocklistproject.github.io/Lists/redirect.txt>
-  * Scam: <https://blocklistproject.github.io/Lists/scam.txt>
-  * Tracking: <https://blocklistproject.github.io/Lists/tracking.txt>
-  * Smart TV: <https://blocklistproject.github.io/Lists/smart-tv.txt>
 * Firebog
   * Suspicious Lists
     * <https://raw.githubusercontent.com/PolishFiltersTeam/KADhosts/master/KADhosts.txt>
