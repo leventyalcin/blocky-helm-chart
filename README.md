@@ -401,6 +401,8 @@ this client is subject to no denylists.
   * <https://raw.githubusercontent.com/kboghdady/youTube_ads_4_pi-hole/master/youtubelist.txt>
 * osid.nl
   * Big: <https://big.oisd.nl/domainswild>
+* malware-filter
+  * URLhaus full dump, wildcard format: <https://malware-filter.gitlab.io/malware-filter/urlhaus-filter-wildcard.txt>
 
 ## Resources
 
