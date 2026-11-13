@@ -73,14 +73,22 @@ what is available.
 > An unknown or misspelled key is fatal at start-up, not ignored.** If the pod crashes right
 > after an upgrade, the first few log lines name the offending key.
 
-Three keys under `config:` are **chart-specific** and are translated rather than passed through,
-because Blocky itself does not accept them:
+Everything under `config:` is passed to Blocky as written, with three exceptions that are
+translated because Blocky itself does not accept them:
 
 | You set | Blocky receives |
 |---------|-----------------|
 | `config.queryLog.mysql` / `config.queryLog.postgresql` | `queryLog.target` (DSN, password injected at runtime) |
 | `config.redis.enabled` / `.external` / `.image` / `.resources` | `redis.address` (+ password references) |
 | empty `config.conditional` / `config.customDNS` / `config.hostsFile.sources` | omitted entirely |
+| `"*"` in a `config.blocking.clientGroupsBlock` entry | every denylist group name |
+
+Two values sit **outside** `config:` and feed into it, so that `config:` stays Blocky's own
+namespace: `extraDenylists` (below) and nothing else today.
+
+| You set | Blocky receives |
+|---------|-----------------|
+| `extraDenylists` | appended into `config.blocking.denylists` |
 
 ### Key Parameters
 
@@ -303,6 +311,56 @@ config:
   queryLog:
     type: console
 ```
+
+## Adding Lists Without Restating a Group
+
+Helm merges maps key by key but **replaces** arrays. Setting
+`config.blocking.denylists.firebog` therefore discards all 24 default Firebog sources, so
+adding one URL means copying the other 24 into your own values.
+
+`extraDenylists` appends instead. It takes the same shape as `denylists`: a named group is
+appended to, an unknown group is created. It is a **top-level** value, not part of `config:`,
+because Blocky has no such key and validates its config with `additionalProperties: false`.
+
+```yaml
+extraDenylists:
+  firebog:
+    - https://example.com/one-more-source.txt       # the 24 defaults are kept
+  mylist:
+    - https://example.com/my-own-list.txt           # a new group
+
+config:
+  blocking:
+    clientGroupsBlock:
+      default:
+        - stevenblack
+        - firebog
+        - hagezi
+        - kboghdady
+        - osid_nl
+        - mylist                                    # a NEW group needs this line
+```
+
+One limit: **it can only add.** To drop a default source, override that key in `denylists`, with
+an empty list to disable the group entirely.
+
+A group is only blocked once a client group references it, and `clientGroupsBlock` is a map of
+arrays, so naming one group there would discard the rest. Write `"*"` to mean every configured
+group, including groups added through `extraDenylists`:
+
+```yaml
+config:
+  blocking:
+    clientGroupsBlock:
+      default:
+        - "*"            # every group, so a new denylist needs no change here
+      "192.168.4.0/24":
+        - stevenblack    # or name them, as before
+      "172.16.0.0/16": []
+```
+
+`"*"` is expanded by the chart, so Blocky receives the group names. An empty array still means
+this client is subject to no denylists.
 
 ## Default Lists
 

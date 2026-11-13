@@ -11,6 +11,10 @@
     queryLog.mysql / queryLog.postgresql -> queryLog.target
     redis.enabled/.external/.image/.resources -> redis.address (+ password refs)
     empty conditional/customDNS/hostsFile.sources -> omitted entirely
+  Two chart-level values feed into it, from OUTSIDE .Values.config, because everything
+  under config: is Blocky's own and an unknown key there fails validation:
+    .Values.extraDenylists -> appended into blocking.denylists
+    "*" in a clientGroupsBlock entry -> every denylist group name
 
   The DSN keeps the LITERAL string $BLOCKY_DATABASE_PASSWORD. An init container in
   deployment.yaml seds the real value in from the secret at start-up; do not resolve it
@@ -65,6 +69,35 @@
 {{- end }}
 {{- if and (hasKey $cfg "hostsFile") (not (dig "hostsFile" "sources" "" .Values.config)) }}
 {{-   $_ := unset (index $cfg "hostsFile") "sources" }}
+{{- end }}
+{{- /* ---- extraDenylists ---- */}}
+{{- if and .Values.extraDenylists (hasKey $cfg "blocking") }}
+{{-   $b := index $cfg "blocking" }}
+{{-   $lists := deepCopy (dig "denylists" dict $b) }}
+{{-   range $group, $urls := .Values.extraDenylists }}
+{{-     $_ := set $lists $group (concat (index $lists $group | default list) $urls) }}
+{{-   end }}
+{{-   $_ := set $b "denylists" $lists }}
+{{- end }}
+{{- /* ---- "*" in clientGroupsBlock ---- */}}
+{{- if hasKey $cfg "blocking" }}
+{{-   $b := index $cfg "blocking" }}
+{{-   $names := keys (dig "denylists" dict $b) | sortAlpha }}
+{{-   $cgb := dict }}
+{{-   range $client, $groups := (dig "clientGroupsBlock" dict $b) }}
+{{-     $out := list }}
+{{-     range $g := (default (list) $groups) }}
+{{-       if eq $g "*" }}
+{{-         $out = concat $out $names }}
+{{-       else }}
+{{-         $out = append $out $g }}
+{{-       end }}
+{{-     end }}
+{{-     $_ := set $cgb $client (uniq $out) }}
+{{-   end }}
+{{-   if $cgb }}
+{{-     $_ := set $b "clientGroupsBlock" $cgb }}
+{{-   end }}
 {{- end }}
 apiVersion: v1
 kind: ConfigMap
