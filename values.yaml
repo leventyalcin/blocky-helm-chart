@@ -13,6 +13,10 @@ fullnameOverride: ""
 
 # Blocky configuration
 # Reference: https://0xerr0r.github.io/blocky/latest/configuration/
+# Appended into config.blocking.denylists, which Helm would otherwise replace wholesale.
+# A named group keeps the sources below and gains these; an unknown group is created.
+extraDenylists: {}
+
 config:
   # Upstream DNS servers (required)
   upstreams:
@@ -63,7 +67,6 @@ config:
         - https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-malware.txt
         - https://raw.githubusercontent.com/Spam404/lists/master/main-blacklist.txt
         - https://raw.githubusercontent.com/AssoEchap/stalkerware-indicators/master/generated/hosts
-        - https://urlhaus.abuse.ch/downloads/hostfile/
         - https://lists.cyberhost.uk/malware.txt
       hagezi:
       # Multi PRO - Extended protection (Recommended)
