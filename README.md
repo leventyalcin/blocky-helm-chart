@@ -165,7 +165,7 @@ blockyUI:
   enabled: true
   image:
     repository: ghcr.io/gabeduartem/blocky-ui
-    tag: "1.5.0"
+    tag: "2.2.1"
   ingress:
     enabled: true
     className: nginx
