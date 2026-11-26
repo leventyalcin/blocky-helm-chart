@@ -381,6 +381,22 @@ resources: {}
   #   memory: 128Mi
 
 # Node scheduling
+# Deployment update strategy. Empty keeps Kubernetes' own default of
+# RollingUpdate with maxSurge and maxUnavailable at 25%. A hard podAntiAffinity needs
+# maxSurge: 0, or the surge pod has no node to go to and the rollout never finishes.
+updateStrategy: {}
+# type: RollingUpdate
+# rollingUpdate:
+#   maxSurge: 0
+#   maxUnavailable: 1
+
+# Caps how many pods a drain may evict at once. It governs evictions only, so it does not
+# slow a rollout down, and it cannot protect against a node that crashes.
+podDisruptionBudget:
+  enabled: false
+  maxUnavailable: 1
+  # minAvailable: 1    # set one or the other, never both
+
 nodeSelector: {}
 
 tolerations: []

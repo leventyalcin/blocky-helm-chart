@@ -111,6 +111,9 @@ namespace: `extraDenylists` (below) and nothing else today.
 | `config.redis.enabled`                  | Enable Redis for cache synchronization                                | `false`                  |
 | `config.redis.external.address`         | External Redis address (disables sidecar if set)                      | `""`                     |
 | `serviceMonitor.enabled`                | Enable ServiceMonitor                                                 | `true`                   |
+| `updateStrategy`                        | Deployment strategy; needs `maxSurge: 0` with a hard anti-affinity    | `{}` (Kubernetes default)|
+| `podDisruptionBudget.enabled`           | Create a PodDisruptionBudget                                          | `false`                  |
+| `podDisruptionBudget.maxUnavailable`    | Pods a drain may evict at once; ignored if `minAvailable` is set      | `1`                      |
 
 ### Examples
 
@@ -125,6 +128,32 @@ config:
         - https://dns.cloudflare.com/dns-query
         - https://dns.google/dns-query
 ```
+
+#### Single-Node k3s, Simplest Possible
+
+One node, one pod, no scheduling rules. This is the default, so the only values worth setting
+are the upstream and the address the DNS service answers on.
+
+```bash
+helm install blocky blocky/blocky -n dns --create-namespace -f values.yaml
+```
+
+```yaml
+# values.yaml
+config:
+  upstreams:
+    groups:
+      default:
+        - https://dns.cloudflare.com/dns-query
+
+dnsService:
+  type: LoadBalancer
+  loadBalancerIP: 192.168.1.53
+```
+
+On a single-node k3s with Klipper as the load balancer, drop `loadBalancerIP` and reach the
+service on the node's own address. Leave `replicaCount` at 1: a second pod on one node adds
+nothing and, with the spread rules below, would never be placed.
 
 #### Enable Blocky UI with Ingress
 
@@ -165,6 +194,72 @@ tolerations:
     value: "dns"
     effect: "NoSchedule"
 ```
+
+#### One Replica, Mandatory Placement
+
+The pod runs on a control-plane node or it does not run at all. `requiredDuringScheduling`
+leaves it `Pending` rather than placing it somewhere that cannot serve.
+
+```yaml
+# values.yaml
+replicaCount: 1
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+```
+
+#### Two Replicas, Mandatory Spread
+
+Two pods that can never share a node, so losing one node leaves a warm pod behind. Useful with
+`dnsService.externalTrafficPolicy: Local`, where only the node holding a ready pod can announce
+the load-balancer address.
+
+```yaml
+# values.yaml
+replicaCount: 2
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - topologyKey: kubernetes.io/hostname
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: blocky
+            app.kubernetes.io/component: blocky
+
+# maxSurge MUST be 0 here. The default of 25% creates the replacement pod before
+# removing the old one, the anti-affinity gives it nowhere to go, and the rollout
+# waits for ever.
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 0
+    maxUnavailable: 1
+
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+```
+
+With a hard anti-affinity, `replicaCount` must not exceed the number of nodes that match the
+node affinity. Any extra pod stays `Pending` for ever, because every eligible node already
+holds one.
 
 #### Custom DNS Entries
 
