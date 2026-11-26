@@ -249,6 +249,13 @@ config:
         size: 5Gi
         accessModes:
           - ReadWriteOnce
+      # Scheduling for the bundled database only; each key falls back to the chart-wide
+      # value when empty. Set affinity here whenever the chart-wide one carries a
+      # podAntiAffinity against blocky: the database would inherit it and then repel
+      # blocky from its own node.
+      nodeSelector: {}
+      affinity: {}
+      tolerations: []
       # Custom MySQL configuration (my.cnf)
       # Optimized for minimal memory (~256-384MB)
       config: |
@@ -305,6 +312,13 @@ config:
         size: 5Gi
         accessModes:
           - ReadWriteOnce
+      # Scheduling for the bundled database only; each key falls back to the chart-wide
+      # value when empty. Set affinity here whenever the chart-wide one carries a
+      # podAntiAffinity against blocky: the database would inherit it and then repel
+      # blocky from its own node.
+      nodeSelector: {}
+      affinity: {}
+      tolerations: []
 
 # DNS Service configuration
 dnsService:
