@@ -6,6 +6,10 @@ metadata:
     {{- include "blocky.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  {{- with .Values.updateStrategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "blocky.selectorLabels" . | nindent 6 }}
