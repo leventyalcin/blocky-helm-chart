@@ -261,6 +261,25 @@ With a hard anti-affinity, `replicaCount` must not exceed the number of nodes th
 node affinity. Any extra pod stays `Pending` for ever, because every eligible node already
 holds one.
 
+**Give the bundled database its own affinity.** `config.queryLog.{postgresql,mysql}` accept
+`affinity`, `nodeSelector` and `tolerations`, each falling back to the chart-wide value. Without
+the override the database inherits the anti-affinity above, which then repels blocky from the
+database's own node and costs you a node:
+
+```yaml
+config:
+  queryLog:
+    type: postgresql
+    postgresql:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+```
+
 #### Custom DNS Entries
 
 ```yaml

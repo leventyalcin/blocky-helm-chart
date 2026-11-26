@@ -107,15 +107,16 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
-      {{- with .Values.nodeSelector }}
+      {{- $db := .Values.config.queryLog.postgresql }}
+      {{- with ($db.nodeSelector | default .Values.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with ($db.affinity | default .Values.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with ($db.tolerations | default .Values.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

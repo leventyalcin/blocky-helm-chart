@@ -127,15 +127,16 @@ spec:
               mountPath: /etc/mysql/conf.d/my.cnf
               subPath: my.cnf
               readOnly: true
-      {{- with .Values.nodeSelector }}
+      {{- $db := .Values.config.queryLog.mysql }}
+      {{- with ($db.nodeSelector | default .Values.nodeSelector) }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with ($db.affinity | default .Values.affinity) }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with ($db.tolerations | default .Values.tolerations) }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
